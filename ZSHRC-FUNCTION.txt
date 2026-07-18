@@ -1,0 +1,13 @@
+
+# === Project: Serate Film (added 2026-07-18) ===
+# Serate Film - Cinema club privato per il gruppo
+claude-serate-film() {
+  command -v set_terminal_style >/dev/null 2>&1 && set_terminal_style "🔮 Claude - Serate Film" "35,25,40"
+  cd "/Users/ebuccelli/Code/solo/projects/serate-film"
+  claude --resume serate-film "$@"
+}
+
+alias serate-film='cd "/Users/ebuccelli/Code/solo/projects/serate-film"'
+export PS1_SERATE_FILM='%F{blue}[Serate Film]%f %F{cyan}%~%f $ '
+serate-film-env() { export PS1=$PS1_SERATE_FILM; cd "/Users/ebuccelli/Code/solo/projects/serate-film"; }
+# === /Project: Serate Film ===
