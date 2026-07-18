@@ -29,7 +29,7 @@ export default async function StoricoPage() {
       <p className="eyebrow">Il registro di sala</p>
       <h1 className="mb-2 font-display text-3xl font-bold tracking-tight">Storico</h1>
       <p className="mb-6 font-mono text-sm text-fumo">
-        {`${done.length} ${done.length === 1 ? "proiezione" : "proiezioni"} all'attivo`}
+        {`${done.length} ${done.length === 1 ? "serata vista" : "serate viste"} insieme`}
       </p>
 
       {done.length === 0 ? (

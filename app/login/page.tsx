@@ -2,9 +2,11 @@
 
 import { useActionState } from "react";
 import { login } from "@/lib/actions";
+import { quoteOfTheDay } from "@/lib/quotes";
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
+  const quote = quoteOfTheDay();
 
   return (
     <main className="beam flex min-h-dvh flex-col items-center justify-center px-4">
@@ -51,8 +53,15 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-xs text-fumo">
-          Niente account? Chiedi a chi organizza.
+          La sala è privata: se manca il tuo nome, chiedi a chi organizza.
         </p>
+
+        <div className="mt-10 text-center">
+          <p className="quote">“{quote.text}”</p>
+          <p className="mt-1 font-mono text-xs text-fumo">
+            {quote.film} · {quote.year}
+          </p>
+        </div>
       </div>
     </main>
   );

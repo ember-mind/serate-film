@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { eq, desc, asc, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { events, movies, watchlist } from "@/db/schema";
+import { events, movies, users, watchlist } from "@/db/schema";
 import { Poster } from "@/components/Poster";
+import { Avatar } from "@/components/Avatar";
+import { quoteOfTheDay } from "@/lib/quotes";
+import { requireUser } from "@/lib/auth";
 import { formatDateFull, formatDateShort } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const me = await requireUser();
   const scheduled = await db.query.events.findMany({
     where: eq(events.status, "scheduled"),
     orderBy: asc(events.chosenDate),
@@ -37,8 +41,25 @@ export default async function HomePage() {
         })
       : [];
 
+  const people = await db.query.users.findMany({ orderBy: asc(users.name) });
+  const seen = await db.query.events.findMany({ where: eq(events.status, "done") });
+  const quote = quoteOfTheDay();
+  const firstName = me.name.split(" ")[0];
+
   return (
     <div className="flex flex-col gap-10">
+      {/* saluto */}
+      <section>
+        <h1 className="font-display text-3xl font-bold tracking-tight">Ciao {firstName} 👋</h1>
+        <p className="mt-1 text-sm text-fumo">
+          {next
+            ? "C'è una serata in programma: si prepara la sala."
+            : open.length > 0
+              ? "Si vota la prossima serata — di' la tua."
+              : "La sala aspetta solo voi."}
+        </p>
+      </section>
+
       {/* prossima proiezione: il biglietto */}
       <section aria-labelledby="prossima">
         <p className="eyebrow mb-3" id="prossima">
@@ -80,8 +101,10 @@ export default async function HomePage() {
           </Link>
         ) : (
           <div className="ticket flex flex-col items-center gap-4 p-8 text-center">
-            <p className="font-display text-2xl font-semibold">Nessuna serata in programma</p>
-            <p className="text-sm text-fumo">Il proiettore è spento. Accendilo tu.</p>
+            <p className="font-display text-2xl font-semibold">Il proiettore è spento</p>
+            <p className="text-sm text-fumo">
+              Divano, luci basse, i soliti. Manca solo il film: accendilo tu.
+            </p>
             <Link
               href="/serate/nuova"
               className="rounded-lg bg-proiettore px-5 py-2.5 font-semibold text-notte-fonda transition-colors hover:bg-proiettore-acceso"
@@ -151,6 +174,33 @@ export default async function HomePage() {
             mettilo in lista.
           </p>
         )}
+      </section>
+
+      {/* il gruppo */}
+      <section aria-labelledby="gruppo" className="ticket flex flex-wrap items-center justify-between gap-4 p-5">
+        <div>
+          <p className="eyebrow mb-2" id="gruppo">
+            La sala
+          </p>
+          <div className="flex -space-x-1.5">
+            {people.map((p) => (
+              <Avatar key={p.id} name={p.name} id={p.id} />
+            ))}
+          </div>
+        </div>
+        <p className="text-right font-mono text-sm text-fumo">
+          {seen.length === 0
+            ? "prima proiezione in arrivo"
+            : `${seen.length} ${seen.length === 1 ? "film visto" : "film visti"} insieme`}
+        </p>
+      </section>
+
+      {/* citazione del giorno */}
+      <section aria-label="Citazione del giorno" className="pb-2 text-center">
+        <p className="quote text-lg">“{quote.text}”</p>
+        <p className="mt-1 font-mono text-xs text-fumo">
+          {quote.film} · {quote.year}
+        </p>
       </section>
     </div>
   );

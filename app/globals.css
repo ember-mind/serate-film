@@ -25,9 +25,18 @@ body {
   background-color: var(--color-notte);
   color: var(--color-schermo);
   font-family: var(--font-sans);
-  /* trama pellicola: puntini sottilissimi, quasi invisibili */
-  background-image: radial-gradient(rgba(242, 232, 213, 0.025) 1px, transparent 1px);
-  background-size: 24px 24px;
+  /* luce calda del proiettore dall'alto + trama pellicola a puntini */
+  background-image:
+    radial-gradient(90% 45% at 50% 0%, rgba(232, 184, 75, 0.07), transparent 70%),
+    radial-gradient(rgba(242, 232, 213, 0.025) 1px, transparent 1px);
+  background-size: 100% 100%, 24px 24px;
+  background-attachment: fixed, scroll;
+}
+
+.quote {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--color-schermo);
 }
 
 ::selection {
