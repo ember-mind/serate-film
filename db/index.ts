@@ -11,10 +11,13 @@ fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 const sqlite = new Database(dbPath);
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("foreign_keys = ON");
+sqlite.pragma("busy_timeout = 5000");
 
 export const db = drizzle(sqlite, { schema });
 
+// Le migration girano solo a runtime: durante `next build` i worker paralleli
+// di page-data aprirebbero il db in scrittura tutti insieme (SQLITE_BUSY).
 const migrationsFolder = path.join(process.cwd(), "db", "migrations");
-if (fs.existsSync(migrationsFolder)) {
+if (process.env.NEXT_PHASE !== "phase-production-build" && fs.existsSync(migrationsFolder)) {
   migrate(db, { migrationsFolder });
 }
