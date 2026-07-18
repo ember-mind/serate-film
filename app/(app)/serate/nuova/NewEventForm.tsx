@@ -1,15 +1,24 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { createEvent } from "@/lib/actions";
 
-type WlMovie = { id: number; title: string; year: number | null; director: string | null };
+type PickMovie = {
+  id: number;
+  title: string;
+  year: number | null;
+  director: string | null;
+  inWatchlist: boolean;
+};
 
-export function NewEventForm({ watchlistMovies }: { watchlistMovies: WlMovie[] }) {
+const CATALOG_LIMIT = 24;
+
+export function NewEventForm({ movies }: { movies: PickMovie[] }) {
   const [state, action, pending] = useActionState(createEvent, undefined);
   const [dateCount, setDateCount] = useState(2);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [query, setQuery] = useState("");
 
   const toggle = (id: number) =>
     setSelected((prev) => {
@@ -19,17 +28,63 @@ export function NewEventForm({ watchlistMovies }: { watchlistMovies: WlMovie[] }
       return next;
     });
 
-  if (watchlistMovies.length === 0) {
+  const q = query.trim().toLowerCase();
+  const matches = (m: PickMovie) =>
+    !q ||
+    m.title.toLowerCase().includes(q) ||
+    (m.director ?? "").toLowerCase().includes(q);
+
+  const wlMovies = movies.filter((m) => m.inWatchlist && (matches(m) || selected.has(m.id)));
+  const catalogAll = useMemo(
+    () => movies.filter((m) => !m.inWatchlist && (matches(m) || selected.has(m.id))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [movies, q, selected]
+  );
+  const catalog = catalogAll.slice(0, CATALOG_LIMIT);
+  const hidden = catalogAll.length - catalog.length;
+
+  if (movies.length === 0) {
     return (
       <p className="text-sm text-fumo">
-        La watchlist è vuota: prima{" "}
+        Il catalogo è vuoto: prima{" "}
         <Link href="/film" className="text-proiettore underline">
           aggiungi qualche film
         </Link>
-        , poi organizza la serata.
+        .
       </p>
     );
   }
+
+  const tile = (m: PickMovie) => {
+    const on = selected.has(m.id);
+    return (
+      <li key={m.id}>
+        <label
+          className={`stamp block cursor-pointer overflow-hidden rounded-md border-2 ${
+            on ? "border-proiettore" : "border-transparent opacity-80 hover:opacity-100"
+          }`}
+          data-voted={on}
+        >
+          <input
+            type="checkbox"
+            name="movieIds"
+            value={m.id}
+            checked={on}
+            onChange={() => toggle(m.id)}
+            className="sr-only"
+          />
+          <span className="flex aspect-2/3 flex-col items-center justify-center bg-sipario-chiaro p-2 text-center">
+            <span className="font-display text-xs font-bold leading-tight">{m.title}</span>
+            {m.year && <span className="mt-1 font-mono text-[10px] text-fumo">{m.year}</span>}
+          </span>
+          <span className="block truncate bg-sipario px-2 py-1.5 text-xs">
+            {on ? "✓ " : ""}
+            {m.title}
+          </span>
+        </label>
+      </li>
+    );
+  };
 
   return (
     <form action={action} className="flex flex-col gap-8">
@@ -81,38 +136,37 @@ export function NewEventForm({ watchlistMovies }: { watchlistMovies: WlMovie[] }
         <legend className="eyebrow float-left mb-3">
           Film in rosa · {selected.size} scelti (max 8)
         </legend>
-        <ul className="clear-both grid grid-cols-3 gap-3 sm:grid-cols-4">
-          {watchlistMovies.map((m) => {
-            const on = selected.has(m.id);
-            return (
-              <li key={m.id}>
-                <label
-                  className={`stamp block cursor-pointer overflow-hidden rounded-md border-2 ${
-                    on ? "border-proiettore" : "border-transparent opacity-80 hover:opacity-100"
-                  }`}
-                  data-voted={on}
-                >
-                  <input
-                    type="checkbox"
-                    name="movieIds"
-                    value={m.id}
-                    checked={on}
-                    onChange={() => toggle(m.id)}
-                    className="sr-only"
-                  />
-                  <span className="flex aspect-2/3 flex-col items-center justify-center bg-sipario-chiaro p-2 text-center">
-                    <span className="font-display text-xs font-bold leading-tight">{m.title}</span>
-                    {m.year && <span className="mt-1 font-mono text-[10px] text-fumo">{m.year}</span>}
-                  </span>
-                  <span className="block truncate bg-sipario px-2 py-1.5 text-xs">
-                    {on ? "✓ " : ""}
-                    {m.title}
-                  </span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Filtra per titolo o regista…"
+          aria-label="Filtra i film"
+          className="clear-both mb-4 w-full rounded-lg border border-riga bg-notte px-3 py-2.5 text-sm placeholder:text-fumo/50"
+        />
+
+        {wlMovies.length > 0 && (
+          <>
+            <p className="eyebrow mb-2">Dalla watchlist</p>
+            <ul className="mb-5 grid grid-cols-3 gap-3 sm:grid-cols-4">{wlMovies.map(tile)}</ul>
+          </>
+        )}
+
+        {catalog.length > 0 && (
+          <>
+            <p className="eyebrow mb-2">Dal catalogo</p>
+            <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">{catalog.map(tile)}</ul>
+            {hidden > 0 && (
+              <p className="mt-3 text-xs text-fumo">
+                +{hidden} altri titoli — affina la ricerca per trovarli.
+              </p>
+            )}
+          </>
+        )}
+
+        {wlMovies.length === 0 && catalog.length === 0 && (
+          <p className="text-sm text-fumo">Nessun film corrisponde al filtro.</p>
+        )}
       </fieldset>
 
       {state?.error && (

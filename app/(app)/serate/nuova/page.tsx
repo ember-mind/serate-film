@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { movies, watchlist } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
@@ -12,18 +12,17 @@ export default async function NuovaSerataPage() {
     where: eq(watchlist.status, "active"),
     orderBy: desc(watchlist.addedAt),
   });
-  const ms =
-    wl.length > 0
-      ? await db.query.movies.findMany({
-          where: inArray(
-            movies.id,
-            wl.map((w) => w.movieId)
-          ),
-        })
-      : [];
-  const ordered = wl
-    .map((w) => ms.find((m) => m.id === w.movieId))
-    .filter((m): m is NonNullable<typeof m> => Boolean(m));
+  const wlOrder = new Map(wl.map((w, i) => [w.movieId, i]));
+  const all = await db.query.movies.findMany({
+    orderBy: [desc(movies.year), asc(movies.title)],
+  });
+  // watchlist in testa (nell'ordine di aggiunta), poi il resto del catalogo
+  const ordered = [
+    ...all
+      .filter((m) => wlOrder.has(m.id))
+      .sort((a, b) => wlOrder.get(a.id)! - wlOrder.get(b.id)!),
+    ...all.filter((m) => !wlOrder.has(m.id)),
+  ];
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -32,11 +31,12 @@ export default async function NuovaSerataPage() {
         Metti in programma
       </h1>
       <NewEventForm
-        watchlistMovies={ordered.map((m) => ({
+        movies={ordered.map((m) => ({
           id: m.id,
           title: m.title,
           year: m.year,
           director: m.director,
+          inWatchlist: wlOrder.has(m.id),
         }))}
       />
     </div>
