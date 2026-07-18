@@ -41,8 +41,21 @@ Gli altri membri del gruppo si creano dall'interfaccia: `/admin` (voce "Gruppo",
 - Env: `SESSION_SECRET`.
 - Primo avvio: `node scripts/seed.mjs …` e `node scripts/seed-movies.mjs` dentro il container.
 
+## Suggerimenti
+
+Chiunque può lasciare un suggerimento libero su `/film` ("quel film con De Niro sul jazz…"). I suggerimenti pendenti si evadono con l'AI: identifica il film, poi
+
+```bash
+node scripts/add-movie.mjs --title "New York, New York" --year 1977 \
+  --director "Martin Scorsese" --actors "Robert De Niro, Liza Minnelli" \
+  --genres "Musical, Drammatico" --suggestion <id>
+```
+
+(`--suggestion <id>` marca il suggerimento come evaso e lo collega al film). In produzione: `docker exec <container> node scripts/add-movie.mjs …`.
+
 ## Script
 
 - `node scripts/seed.mjs <username> <nome> <password>` — crea/aggiorna l'admin (applica anche le migrazioni)
 - `node scripts/seed-movies.mjs` — carica/aggiorna il catalogo film (idempotente)
+- `node scripts/add-movie.mjs` — aggiunge un singolo film / evade un suggerimento
 - `npx drizzle-kit generate` — genera una nuova migrazione dopo modifiche a `db/schema.ts`

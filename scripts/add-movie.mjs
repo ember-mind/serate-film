@@ -1,0 +1,59 @@
+// Aggiunge un film al catalogo (usato dall'AI per evadere i suggerimenti).
+// Uso:
+//   node scripts/add-movie.mjs --title "Titolo" [--year 1999] [--director "Nome"] \
+//     [--actors "A, B"] [--genres "Thriller"] [--suggestion 3]
+// --suggestion <id>: marca il suggerimento come 'added' e lo collega al film.
+import Database from "better-sqlite3";
+import fs from "node:fs";
+import path from "node:path";
+
+const args = {};
+const argv = process.argv.slice(2);
+for (let i = 0; i < argv.length; i += 2) {
+  if (!argv[i].startsWith("--") || argv[i + 1] === undefined) {
+    console.error(`Argomento non valido: ${argv[i]}`);
+    process.exit(1);
+  }
+  args[argv[i].slice(2)] = argv[i + 1];
+}
+
+if (!args.title) {
+  console.error("Serve --title.");
+  process.exit(1);
+}
+
+const dbPath = process.env.DATABASE_PATH ?? "./data/serate.db";
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const db = new Database(dbPath);
+db.pragma("journal_mode = WAL");
+
+const res = db
+  .prepare(
+    "INSERT OR IGNORE INTO movies (title, year, director, actors, genres) VALUES (?, ?, ?, ?, ?)"
+  )
+  .run(
+    args.title,
+    args.year ? Number(args.year) : null,
+    args.director ?? null,
+    args.actors ?? null,
+    args.genres ?? null
+  );
+
+let movieId;
+if (res.changes > 0) {
+  movieId = res.lastInsertRowid;
+  console.log(`Aggiunto '${args.title}' (id ${movieId}).`);
+} else {
+  const row = db
+    .prepare("SELECT id FROM movies WHERE title = ? AND year IS ?")
+    .get(args.title, args.year ? Number(args.year) : null);
+  movieId = row?.id;
+  console.log(`'${args.title}' già in catalogo (id ${movieId ?? "?"}).`);
+}
+
+if (args.suggestion && movieId) {
+  const s = db
+    .prepare("UPDATE suggestions SET status = 'added', movie_id = ? WHERE id = ?")
+    .run(movieId, Number(args.suggestion));
+  console.log(s.changes > 0 ? `Suggerimento ${args.suggestion} evaso.` : `Suggerimento ${args.suggestion} non trovato.`);
+}

@@ -42,6 +42,22 @@ export const watchlist = sqliteTable("watchlist", {
     .default("active"),
 });
 
+// Suggerimenti liberi ("quel film con De Niro sul jazz…"): li evade l'AI in un secondo momento.
+export const suggestions = sqliteTable("suggestions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  text: text("text").notNull(),
+  suggestedBy: integer("suggested_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+  status: text("status", { enum: ["pending", "added", "rejected"] })
+    .notNull()
+    .default("pending"),
+  movieId: integer("movie_id").references(() => movies.id),
+});
+
 // Una serata: open (si vota) → scheduled (data+film fissati) → done (vista) | cancelled
 export const events = sqliteTable("events", {
   id: integer("id").primaryKey({ autoIncrement: true }),

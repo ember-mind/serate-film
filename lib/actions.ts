@@ -16,6 +16,7 @@ import {
   movieVotes,
   attendance,
   ratings,
+  suggestions,
 } from "@/db/schema";
 import { createSession, destroySession } from "@/lib/session";
 import { requireUser, requireAdmin } from "@/lib/auth";
@@ -66,6 +67,22 @@ export async function createMovie(_prev: { error?: string } | undefined, formDat
   revalidatePath("/film");
   revalidatePath("/watchlist");
   return {};
+}
+
+export async function createSuggestion(_prev: { error?: string; ok?: boolean } | undefined, formData: FormData) {
+  const user = await requireUser();
+  const text = String(formData.get("text") ?? "").trim();
+  if (!text) return { error: "Scrivi almeno un titolo, anche vago." };
+  if (text.length > 300) return { error: "Massimo 300 caratteri." };
+  await db.insert(suggestions).values({ text, suggestedBy: user.id });
+  revalidatePath("/film");
+  return { ok: true };
+}
+
+export async function dismissSuggestion(id: number) {
+  await requireAdmin();
+  await db.update(suggestions).set({ status: "rejected" }).where(eq(suggestions.id, id));
+  revalidatePath("/film");
 }
 
 export async function addToWatchlist(movieId: number) {
