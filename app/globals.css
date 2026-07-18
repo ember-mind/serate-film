@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+@theme {
+  --color-notte: #131629;
+  --color-notte-fonda: #0d0f1e;
+  --color-sipario: #1c2140;
+  --color-sipario-chiaro: #262c52;
+  --color-schermo: #f2e8d5;
+  --color-proiettore: #e8b84b;
+  --color-proiettore-acceso: #f5cd6e;
+  --color-velluto: #b8354f;
+  --color-fumo: #8e93b4;
+  --color-riga: #2e3459;
+
+  --font-display: var(--font-bricolage), sans-serif;
+  --font-sans: var(--font-spline), sans-serif;
+  --font-mono: var(--font-spline-mono), monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-notte);
+  color: var(--color-schermo);
+  font-family: var(--font-sans);
+  /* trama pellicola: puntini sottilissimi, quasi invisibili */
+  background-image: radial-gradient(rgba(242, 232, 213, 0.025) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+::selection {
+  background: var(--color-proiettore);
+  color: var(--color-notte-fonda);
+}
+
+/* ---------- biglietto (signature) ---------- */
+
+.ticket {
+  position: relative;
+  background: var(--color-sipario);
+  border: 1px solid var(--color-riga);
+  border-radius: 12px;
+}
+
+.ticket-glow {
+  box-shadow: 0 0 0 1px rgba(232, 184, 75, 0.35), 0 0 40px rgba(232, 184, 75, 0.08);
+  border-color: rgba(232, 184, 75, 0.45);
+}
+
+/* linea di strappo + tacche semicircolari tra corpo e matrice */
+.ticket-tear {
+  position: relative;
+  border-left: 2px dashed var(--color-riga);
+}
+
+.ticket-tear::before,
+.ticket-tear::after {
+  content: "";
+  position: absolute;
+  left: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-notte);
+  border: 1px solid var(--color-riga);
+}
+
+.ticket-tear::before {
+  top: -9px;
+  clip-path: inset(50% 0 0 0);
+}
+
+.ticket-tear::after {
+  bottom: -9px;
+  clip-path: inset(0 0 50% 0);
+}
+
+@media (max-width: 640px) {
+  .ticket-tear {
+    border-left: none;
+    border-top: 2px dashed var(--color-riga);
+  }
+  .ticket-tear::before,
+  .ticket-tear::after {
+    top: -9px;
+    bottom: auto;
+  }
+  .ticket-tear::before {
+    left: -9px;
+    clip-path: inset(0 0 0 50%);
+  }
+  .ticket-tear::after {
+    left: auto;
+    right: -9px;
+    clip-path: inset(0 50% 0 0);
+  }
+}
+
+/* ---------- timbro di voto ---------- */
+
+.stamp {
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.stamp[data-voted="true"] {
+  transform: rotate(-2deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp,
+  .stamp[data-voted="true"] {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* ---------- fascio del proiettore in testata ---------- */
+
+.beam {
+  background:
+    linear-gradient(
+      100deg,
+      transparent 30%,
+      rgba(232, 184, 75, 0.06) 42%,
+      rgba(232, 184, 75, 0.12) 50%,
+      rgba(232, 184, 75, 0.06) 58%,
+      transparent 70%
+    );
+}
+
+/* ---------- utility ---------- */
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-fumo);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+label:has(input:focus-visible) {
+  outline: 2px solid var(--color-proiettore);
+  outline-offset: 2px;
+}
