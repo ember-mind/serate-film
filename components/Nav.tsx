@@ -5,36 +5,36 @@ import { usePathname } from "next/navigation";
 
 const items = [
   { href: "/", label: "Stasera" },
-  { href: "/film", label: "Film" },
-  { href: "/serate", label: "Serate" },
-  { href: "/storico", label: "Storico" },
+  { href: "/film", label: "Cineteca" },
+  { href: "/serate", label: "Proiezioni" },
+  { href: "/storico", label: "Registro" },
 ];
 
 export function Nav({ isAdmin, userName }: { isAdmin: boolean; userName: string }) {
   const pathname = usePathname();
-  const links = isAdmin ? [...items, { href: "/admin", label: "Gruppo" }] : items;
+  const links = isAdmin ? [...items, { href: "/admin", label: "Regia" }] : items;
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
     <>
-      {/* testata desktop */}
-      <header className="beam sticky top-0 z-20 border-b border-riga bg-notte/90 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <Link href="/" className="font-display text-xl font-bold tracking-tight text-schermo">
+      {/* insegna */}
+      <header className="sticky top-0 z-20 border-b border-riga bg-notte/95 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5">
+          <Link href="/" className="titlecard text-lg text-schermo">
             Serate<span className="text-proiettore"> Film</span>
           </Link>
-          <nav className="hidden gap-1 sm:flex" aria-label="Principale">
+          <nav className="hidden gap-6 sm:flex" aria-label="Principale">
             {links.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
                 aria-current={isActive(l.href) ? "page" : undefined}
-                className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
+                className={`border-b-2 pb-0.5 font-mono text-xs uppercase tracking-[0.22em] transition-colors ${
                   isActive(l.href)
-                    ? "bg-proiettore font-semibold text-notte-fonda"
-                    : "text-fumo hover:text-schermo"
+                    ? "border-proiettore text-proiettore"
+                    : "border-transparent text-fumo hover:text-schermo"
                 }`}
               >
                 {l.label}
@@ -55,7 +55,7 @@ export function Nav({ isAdmin, userName }: { isAdmin: boolean; userName: string 
             key={l.href}
             href={l.href}
             aria-current={isActive(l.href) ? "page" : undefined}
-            className={`flex-1 py-3 text-center text-xs font-medium ${
+            className={`flex-1 py-3 text-center font-mono text-[10px] uppercase tracking-[0.18em] ${
               isActive(l.href) ? "text-proiettore" : "text-fumo"
             }`}
           >

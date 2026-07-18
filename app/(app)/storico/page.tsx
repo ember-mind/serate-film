@@ -26,11 +26,13 @@ export default async function StoricoPage() {
 
   return (
     <div>
-      <p className="eyebrow">Il registro di sala</p>
-      <h1 className="mb-2 font-display text-3xl font-bold tracking-tight">Storico</h1>
-      <p className="mb-6 font-mono text-sm text-fumo">
-        {`${done.length} ${done.length === 1 ? "serata vista" : "serate viste"} insieme`}
-      </p>
+      <div className="apertura mb-8 text-center">
+        <p className="titlecard-sub">Titoli di coda</p>
+        <h1 className="titlecard mt-1 text-3xl text-schermo">Registro di sala</h1>
+        <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.22em] text-fumo">
+          {`${done.length} ${done.length === 1 ? "proiezione" : "proiezioni"} insieme`}
+        </p>
+      </div>
 
       {done.length === 0 ? (
         <p className="text-sm text-fumo">
@@ -63,7 +65,7 @@ export default async function StoricoPage() {
                     <p className="font-mono text-xs capitalize text-proiettore">
                       {e.chosenDate && formatDateFull(e.chosenDate)}
                     </p>
-                    <p className="mt-0.5 font-display text-xl font-bold leading-tight">
+                    <p className="titlecard mt-1 text-lg leading-tight text-schermo">
                       {m?.title ?? e.title}
                     </p>
                     <p className="mt-1 truncate text-sm text-fumo">

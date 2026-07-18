@@ -26,10 +26,10 @@ export default async function NuovaSerataPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <p className="eyebrow">Nuova serata</p>
-      <h1 className="mb-6 font-display text-3xl font-bold tracking-tight">
-        Metti in programma
-      </h1>
+      <div className="apertura mb-8 text-center">
+        <p className="titlecard-sub">Nuova proiezione</p>
+        <h1 className="titlecard mt-1 text-3xl text-schermo">In cartellone</h1>
+      </div>
       <NewEventForm
         movies={ordered.map((m) => ({
           id: m.id,

@@ -24,14 +24,14 @@ export default async function WatchlistPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <p className="eyebrow">Da vedere insieme</p>
-          <h1 className="font-display text-3xl font-bold tracking-tight">Watchlist</h1>
+          <p className="titlecard-sub">Da vedere insieme</p>
+          <h1 className="titlecard mt-1 text-2xl text-schermo">In pellicola</h1>
         </div>
         <Link
           href="/serate/nuova"
-          className="rounded-lg bg-proiettore px-4 py-2 text-sm font-semibold text-notte-fonda transition-colors hover:bg-proiettore-acceso"
+          className="titlecard rounded-sm bg-proiettore px-4 py-2 text-xs text-notte-fonda transition-colors hover:bg-proiettore-acceso"
         >
-          Organizza serata
+          Metti in cartellone
         </Link>
       </div>
 

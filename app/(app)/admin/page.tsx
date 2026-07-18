@@ -13,8 +13,10 @@ export default async function AdminPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <p className="eyebrow">Regia</p>
-      <h1 className="mb-6 font-display text-3xl font-bold tracking-tight">Il gruppo</h1>
+      <div className="apertura mb-8 text-center">
+        <p className="titlecard-sub">Cabina di regia</p>
+        <h1 className="titlecard mt-1 text-3xl text-schermo">La compagnia</h1>
+      </div>
 
       <ul className="mb-8 flex flex-col gap-2">
         {people.map((p) => (

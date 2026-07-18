@@ -30,11 +30,9 @@ export default async function FilmPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-baseline justify-between">
-        <div>
-          <p className="eyebrow">Il catalogo</p>
-          <h1 className="font-display text-3xl font-bold tracking-tight">Film</h1>
-        </div>
+      <div className="apertura mb-8 text-center">
+        <p className="titlecard-sub">L&apos;archivio della sala</p>
+        <h1 className="titlecard mt-1 text-3xl text-schermo">La Cineteca</h1>
       </div>
 
       <div className="mb-4 flex flex-col gap-3">

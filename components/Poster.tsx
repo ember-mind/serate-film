@@ -27,7 +27,11 @@ export function Poster({
         title={posterCredit ?? undefined}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={posterUrl} alt={`Locandina di ${title}`} className="absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={posterUrl}
+          alt={`Locandina di ${title}`}
+          className="nitrato absolute inset-0 h-full w-full object-cover"
+        />
       </div>
     );
   }
@@ -40,18 +44,18 @@ export function Poster({
       <img
         src={`/generi/${slug}.svg`}
         alt=""
-        className="absolute inset-0 h-full w-full object-cover"
+        className="nitrato absolute inset-0 h-full w-full object-cover"
       />
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(to top, rgba(13,15,30,0.92) 0%, rgba(13,15,30,0.35) 45%, rgba(13,15,30,0.15) 100%)",
+            "linear-gradient(to top, rgba(6,5,5,0.92) 0%, rgba(6,5,5,0.35) 45%, rgba(6,5,5,0.12) 100%)",
         }}
       />
       {showTitle && (
         <>
-          <span className="relative px-2 pb-1 text-center font-display text-sm font-bold leading-tight drop-shadow">
+          <span className="titlecard relative px-2 pb-1 text-center text-[11px] leading-tight text-schermo drop-shadow">
             {title}
           </span>
           {year ? (

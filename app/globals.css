@@ -1,18 +1,20 @@
 @import "tailwindcss";
 
 @theme {
-  --color-notte: #131629;
-  --color-notte-fonda: #0d0f1e;
-  --color-sipario: #1c2140;
-  --color-sipario-chiaro: #262c52;
-  --color-schermo: #f2e8d5;
-  --color-proiettore: #e8b84b;
-  --color-proiettore-acceso: #f5cd6e;
-  --color-velluto: #b8354f;
-  --color-fumo: #8e93b4;
-  --color-riga: #2e3459;
+  /* Cinematografo: nero pellicola caldo, argento schermo, oro proiettore, sipario */
+  --color-notte: #0b0a08;
+  --color-notte-fonda: #060505;
+  --color-sipario: #171512;
+  --color-sipario-chiaro: #221f1a;
+  --color-schermo: #d8d3c8;
+  --color-proiettore: #d4a24e;
+  --color-proiettore-acceso: #e9bc6a;
+  --color-velluto: #8c2332;
+  --color-velluto-acceso: #ab3140;
+  --color-fumo: #8f887a;
+  --color-riga: #2b2822;
 
-  --font-display: var(--font-bricolage), sans-serif;
+  --font-display: var(--font-cinzel), serif;
   --font-sans: var(--font-spline), sans-serif;
   --font-mono: var(--font-spline-mono), monospace;
 }
@@ -25,18 +27,9 @@ body {
   background-color: var(--color-notte);
   color: var(--color-schermo);
   font-family: var(--font-sans);
-  /* luce calda del proiettore dall'alto + trama pellicola a puntini */
-  background-image:
-    radial-gradient(90% 45% at 50% 0%, rgba(232, 184, 75, 0.07), transparent 70%),
-    radial-gradient(rgba(242, 232, 213, 0.025) 1px, transparent 1px);
-  background-size: 100% 100%, 24px 24px;
-  background-attachment: fixed, scroll;
-}
-
-.quote {
-  font-family: var(--font-display);
-  font-style: italic;
-  color: var(--color-schermo);
+  /* fascio del proiettore dall'alto, caldo */
+  background-image: radial-gradient(80% 50% at 50% 0%, rgba(212, 162, 78, 0.08), transparent 70%);
+  background-attachment: fixed;
 }
 
 ::selection {
@@ -44,21 +37,134 @@ body {
   color: var(--color-notte-fonda);
 }
 
-/* ---------- biglietto (signature) ---------- */
+/* ---------- title card: lettering da cartello di apertura ---------- */
+
+.titlecard {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+
+.titlecard-sub {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--color-fumo);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--color-fumo);
+}
+
+/* ---------- grana pellicola su tutta la sala ---------- */
+
+.grain {
+  position: fixed;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.055;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grana 0.6s steps(4) infinite;
+}
+
+@keyframes grana {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-1.5%, 1%); }
+  50% { transform: translate(1%, -1.5%); }
+  75% { transform: translate(-1%, -1%); }
+  100% { transform: translate(0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grain { animation: none; }
+}
+
+/* ---------- pellicola: striscia con perforazioni ---------- */
+
+.filmstrip {
+  position: relative;
+  background: var(--color-notte-fonda);
+  padding: 22px 0;
+  border-top: 1px solid var(--color-riga);
+  border-bottom: 1px solid var(--color-riga);
+}
+
+.filmstrip::before,
+.filmstrip::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background-image: radial-gradient(4px 5px at center, var(--color-notte) 60%, transparent 61%),
+    linear-gradient(var(--color-notte-fonda), var(--color-notte-fonda));
+  background-size: 26px 12px, 100% 100%;
+  background-repeat: repeat-x, no-repeat;
+}
+
+.filmstrip::before { top: 4px; }
+.filmstrip::after { bottom: 4px; }
+
+.filmstrip-scroll {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 0 16px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-riga) transparent;
+}
+
+/* ---------- cinemascope: hero letterboxed ---------- */
+
+.cinemascope {
+  position: relative;
+  background: var(--color-notte-fonda);
+  border-top: 3px solid #000;
+  border-bottom: 3px solid #000;
+  box-shadow: 0 0 60px rgba(212, 162, 78, 0.07) inset, 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+/* ---------- sipario ---------- */
+
+.curtain {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #6d1a27 0px,
+      #8c2332 22px,
+      #4e1119 46px,
+      #7a1f2b 70px,
+      #5a141e 92px
+    );
+}
+
+.curtain-edge {
+  background: linear-gradient(180deg, rgba(6, 5, 5, 0.85), transparent 30%, transparent 70%, rgba(6, 5, 5, 0.9));
+}
+
+/* ---------- schede / biglietto ---------- */
 
 .ticket {
   position: relative;
   background: var(--color-sipario);
   border: 1px solid var(--color-riga);
-  border-radius: 12px;
+  border-radius: 4px;
 }
 
 .ticket-glow {
-  box-shadow: 0 0 0 1px rgba(232, 184, 75, 0.35), 0 0 40px rgba(232, 184, 75, 0.08);
-  border-color: rgba(232, 184, 75, 0.45);
+  box-shadow: 0 0 0 1px rgba(212, 162, 78, 0.4), 0 0 50px rgba(212, 162, 78, 0.1);
+  border-color: rgba(212, 162, 78, 0.5);
 }
 
-/* linea di strappo + tacche semicircolari tra corpo e matrice */
 .ticket-tear {
   position: relative;
   border-left: 2px dashed var(--color-riga);
@@ -76,35 +182,15 @@ body {
   border: 1px solid var(--color-riga);
 }
 
-.ticket-tear::before {
-  top: -9px;
-  clip-path: inset(50% 0 0 0);
-}
-
-.ticket-tear::after {
-  bottom: -9px;
-  clip-path: inset(0 0 50% 0);
-}
+.ticket-tear::before { top: -9px; clip-path: inset(50% 0 0 0); }
+.ticket-tear::after { bottom: -9px; clip-path: inset(0 0 50% 0); }
 
 @media (max-width: 640px) {
-  .ticket-tear {
-    border-left: none;
-    border-top: 2px dashed var(--color-riga);
-  }
+  .ticket-tear { border-left: none; border-top: 2px dashed var(--color-riga); }
   .ticket-tear::before,
-  .ticket-tear::after {
-    top: -9px;
-    bottom: auto;
-  }
-  .ticket-tear::before {
-    left: -9px;
-    clip-path: inset(0 0 0 50%);
-  }
-  .ticket-tear::after {
-    left: auto;
-    right: -9px;
-    clip-path: inset(0 50% 0 0);
-  }
+  .ticket-tear::after { top: -9px; bottom: auto; }
+  .ticket-tear::before { left: -9px; clip-path: inset(0 0 0 50%); }
+  .ticket-tear::after { left: auto; right: -9px; clip-path: inset(0 50% 0 0); }
 }
 
 /* ---------- timbro di voto ---------- */
@@ -114,39 +200,42 @@ body {
 }
 
 .stamp[data-voted="true"] {
-  transform: rotate(-2deg);
+  transform: rotate(-1.5deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .stamp,
-  .stamp[data-voted="true"] {
-    transition: none;
-    transform: none;
-  }
+  .stamp[data-voted="true"] { transition: none; transform: none; }
 }
 
-/* ---------- fascio del proiettore in testata ---------- */
+/* ---------- locandine: resa nitrato d'argento ---------- */
 
-.beam {
-  background:
-    linear-gradient(
-      100deg,
-      transparent 30%,
-      rgba(232, 184, 75, 0.06) 42%,
-      rgba(232, 184, 75, 0.12) 50%,
-      rgba(232, 184, 75, 0.06) 58%,
-      transparent 70%
-    );
+.nitrato {
+  filter: sepia(0.35) saturate(0.75) contrast(1.05);
 }
 
-/* ---------- utility ---------- */
+/* ---------- apertura: dal nero ---------- */
 
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-fumo);
+@keyframes apertura {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.apertura {
+  animation: apertura 0.7s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apertura { animation: none; }
+}
+
+/* ---------- citazione ---------- */
+
+.quote {
+  font-family: var(--font-display);
+  font-style: normal;
+  letter-spacing: 0.04em;
+  color: var(--color-schermo);
 }
 
 a:focus-visible,

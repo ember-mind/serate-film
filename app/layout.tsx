@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Spline_Sans, Spline_Sans_Mono } from "next/font/google";
+import { Cinzel, Spline_Sans, Spline_Sans_Mono } from "next/font/google";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
+const cinzel = Cinzel({
+  variable: "--font-cinzel",
   subsets: ["latin"],
-  axes: ["wdth"],
+  weight: ["400", "600", "700"],
 });
 
 const spline = Spline_Sans({
@@ -20,7 +20,7 @@ const splineMono = Spline_Sans_Mono({
 
 export const metadata: Metadata = {
   title: "Serate Film",
-  description: "Il cinema club del gruppo: watchlist, sondaggi e storico delle serate.",
+  description: "Il cinema club del gruppo: cartellone, votazioni e registro di sala.",
 };
 
 export default function RootLayout({
@@ -31,9 +31,12 @@ export default function RootLayout({
   return (
     <html
       lang="it"
-      className={`${bricolage.variable} ${spline.variable} ${splineMono.variable} h-full antialiased`}
+      className={`${cinzel.variable} ${spline.variable} ${splineMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <div className="grain" aria-hidden />
+        {children}
+      </body>
     </html>
   );
 }

@@ -110,7 +110,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
           {" · di "}
           {nameOf(event.createdBy)}
         </p>
-        <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+        <h1 className="titlecard mt-1 text-2xl text-schermo sm:text-3xl">{title}</h1>
         {event.title && chosenMovie && <p className="mt-1 text-sm text-fumo">{event.title}</p>}
       </header>
 
@@ -119,7 +119,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         <>
           <section aria-labelledby="vota-date">
             <p className="eyebrow mb-3" id="vota-date">
-              1 · Quando puoi? Timbra le date buone
+              Atto I · Le date — timbra quando ci sei
             </p>
             <ul className="flex flex-col gap-2">
               {dates.map((d) => {
@@ -161,7 +161,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
 
           <section aria-labelledby="vota-film">
             <p className="eyebrow mb-3" id="vota-film">
-              2 · Timbra tutti i film che ti vanno bene
+              Atto II · Il film — timbra tutti quelli che ti vanno bene
             </p>
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {eMovies.map((em) => {
