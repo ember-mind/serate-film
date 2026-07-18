@@ -2,7 +2,7 @@
 
 Cinema club privato per il gruppo: catalogo film autonomo, watchlist condivisa, sondaggi data+film con approval voting, storico delle serate viste con presenti, stelline e note.
 
-Nessuna API esterna: il catalogo è nostro (SQLite), pre-caricato con ~200 film noti 1995–2025 (solo fatti: titolo, anno, regista, attori, generi — niente poster né trame di terzi) e ampliabile da qualunque membro dall'interfaccia.
+Nessuna API esterna: il catalogo è nostro (SQLite), pre-caricato con ~200 film noti 1995–2025 (solo fatti: titolo, anno, regista, attori, generi, durata — niente poster né trame di terzi) e ampliabile da qualunque membro dall'interfaccia. Le locandine sono artwork originali per genere (13 illustrazioni in `public/generi/`, generate con Gemini, stile fotobusta dipinta).
 
 ## Stack
 
@@ -57,5 +57,6 @@ node scripts/add-movie.mjs --title "New York, New York" --year 1977 \
 
 - `node scripts/seed.mjs <username> <nome> <password>` — crea/aggiorna l'admin (applica anche le migrazioni)
 - `node scripts/seed-movies.mjs` — carica/aggiorna il catalogo film (idempotente)
-- `node scripts/add-movie.mjs` — aggiunge un singolo film / evade un suggerimento
+- `node scripts/seed-runtimes.mjs` — popola le durate del catalogo seed (idempotente)
+- `node scripts/add-movie.mjs` — aggiunge un singolo film / evade un suggerimento (supporta `--runtime`)
 - `npx drizzle-kit generate` — genera una nuova migrazione dopo modifiche a `db/schema.ts`

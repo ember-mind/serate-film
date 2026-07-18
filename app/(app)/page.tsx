@@ -74,6 +74,7 @@ export default async function HomePage() {
               <Poster
                 title={nextMovie.title}
                 year={nextMovie.year}
+                genres={nextMovie.genres}
                 className="h-36 w-24 shrink-0 rounded-md"
               />
               <div className="min-w-0">
@@ -83,6 +84,7 @@ export default async function HomePage() {
                 <p className="mt-1 text-sm text-fumo">
                   {[
                     nextMovie.year,
+                    nextMovie.runtime ? `${nextMovie.runtime} min` : null,
                     nextMovie.director ? `regia di ${nextMovie.director}` : null,
                     nextMovie.genres,
                   ]
@@ -163,7 +165,12 @@ export default async function HomePage() {
               if (!m) return null;
               return (
                 <li key={m.id}>
-                  <Poster title={m.title} year={m.year} className="aspect-2/3 w-full rounded-md" />
+                  <Poster
+                    title={m.title}
+                    year={m.year}
+                    genres={m.genres}
+                    className="aspect-2/3 w-full rounded-md"
+                  />
                 </li>
               );
             })}

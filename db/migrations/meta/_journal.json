@@ -15,6 +15,13 @@
       "when": 1784392610223,
       "tag": "0001_bored_sersi",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784394433780,
+      "tag": "0002_wide_kulan_gath",
+      "breakpoints": true
     }
   ]
 }

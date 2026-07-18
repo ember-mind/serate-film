@@ -36,6 +36,7 @@ export default async function NuovaSerataPage() {
           title: m.title,
           year: m.year,
           director: m.director,
+          genres: m.genres,
           inWatchlist: wlOrder.has(m.id),
         }))}
       />

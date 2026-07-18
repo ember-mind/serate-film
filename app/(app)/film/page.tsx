@@ -77,6 +77,7 @@ export default async function FilmPage() {
           director: m.director,
           actors: m.actors,
           genres: m.genres,
+          runtime: m.runtime,
           state: stateOf(m.id),
         }))}
       />

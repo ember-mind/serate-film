@@ -3,12 +3,14 @@
 import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { createEvent } from "@/lib/actions";
+import { Poster } from "@/components/Poster";
 
 type PickMovie = {
   id: number;
   title: string;
   year: number | null;
   director: string | null;
+  genres: string | null;
   inWatchlist: boolean;
 };
 
@@ -73,10 +75,7 @@ export function NewEventForm({ movies }: { movies: PickMovie[] }) {
             onChange={() => toggle(m.id)}
             className="sr-only"
           />
-          <span className="flex aspect-2/3 flex-col items-center justify-center bg-sipario-chiaro p-2 text-center">
-            <span className="font-display text-xs font-bold leading-tight">{m.title}</span>
-            {m.year && <span className="mt-1 font-mono text-[10px] text-fumo">{m.year}</span>}
-          </span>
+          <Poster title={m.title} year={m.year} genres={m.genres} className="aspect-2/3 w-full" />
           <span className="block truncate bg-sipario px-2 py-1.5 text-xs">
             {on ? "✓ " : ""}
             {m.title}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { addToWatchlist } from "@/lib/actions";
+import { Poster } from "@/components/Poster";
 
 export type CatalogMovie = {
   id: number;
@@ -10,6 +11,7 @@ export type CatalogMovie = {
   director: string | null;
   actors: string | null;
   genres: string | null;
+  runtime: number | null;
   state: "none" | "watchlist" | "watched";
 };
 
@@ -51,9 +53,17 @@ export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {results.map((m) => (
             <li key={m.id} className="ticket flex flex-col overflow-hidden">
+              <Poster
+                title={m.title}
+                genres={m.genres}
+                showTitle={false}
+                className="aspect-3/2 w-full sm:aspect-2/1"
+              />
               <div className="flex flex-1 flex-col p-3">
                 <p className="font-display text-base font-bold leading-snug">{m.title}</p>
-                <p className="mt-0.5 font-mono text-xs text-proiettore">{m.year}</p>
+                <p className="mt-0.5 font-mono text-xs text-proiettore">
+                  {[m.year, m.runtime ? `${m.runtime}′` : null].filter(Boolean).join(" · ")}
+                </p>
                 {m.director && <p className="mt-1.5 text-xs text-fumo">regia di {m.director}</p>}
                 {m.actors && <p className="mt-0.5 line-clamp-2 text-xs text-fumo">con {m.actors}</p>}
                 {m.genres && (

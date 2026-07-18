@@ -37,7 +37,7 @@ export function AddMovieForm() {
           className="rounded-lg border border-riga bg-notte px-3 py-2.5 font-mono text-sm placeholder:text-fumo/50"
         />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         <input
           name="director"
           placeholder="Regista"
@@ -47,6 +47,14 @@ export function AddMovieForm() {
           name="genres"
           placeholder="Generi (es. Thriller, Noir)"
           className="rounded-lg border border-riga bg-notte px-3 py-2.5 text-sm placeholder:text-fumo/50"
+        />
+        <input
+          name="runtime"
+          type="number"
+          min={1}
+          max={600}
+          placeholder="Durata (min)"
+          className="rounded-lg border border-riga bg-notte px-3 py-2.5 font-mono text-sm placeholder:text-fumo/50"
         />
       </div>
       <input

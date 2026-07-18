@@ -50,7 +50,12 @@ export default async function StoricoPage() {
                   className="ticket flex gap-4 p-4 transition-colors hover:border-proiettore/50"
                 >
                   {m && (
-                    <Poster title={m.title} year={m.year} className="h-28 w-20 shrink-0 rounded-md" />
+                    <Poster
+                      title={m.title}
+                      year={m.year}
+                      genres={m.genres}
+                      className="h-28 w-20 shrink-0 rounded-md"
+                    />
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="font-mono text-xs capitalize text-proiettore">

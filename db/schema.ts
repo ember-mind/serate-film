@@ -22,6 +22,7 @@ export const movies = sqliteTable(
     director: text("director"),
     actors: text("actors"),
     genres: text("genres"),
+    runtime: integer("runtime"), // minuti
     addedBy: integer("added_by").references(() => users.id), // null = seed iniziale
   },
   (t) => [uniqueIndex("movies_title_year_unique").on(t.title, t.year)]

@@ -29,14 +29,15 @@ db.pragma("journal_mode = WAL");
 
 const res = db
   .prepare(
-    "INSERT OR IGNORE INTO movies (title, year, director, actors, genres) VALUES (?, ?, ?, ?, ?)"
+    "INSERT OR IGNORE INTO movies (title, year, director, actors, genres, runtime) VALUES (?, ?, ?, ?, ?, ?)"
   )
   .run(
     args.title,
     args.year ? Number(args.year) : null,
     args.director ?? null,
     args.actors ?? null,
-    args.genres ?? null
+    args.genres ?? null,
+    args.runtime ? Number(args.runtime) : null
   );
 
 let movieId;
