@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { addToWatchlist } from "@/lib/actions";
+import { addToWatchlist, removeFromWatchlist } from "@/lib/actions";
 import { Poster } from "@/components/Poster";
 
 export type CatalogMovie = {
@@ -77,9 +77,11 @@ export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
                       Già vista
                     </span>
                   ) : m.state === "watchlist" ? (
-                    <span className="block rounded-md border border-proiettore/40 py-1.5 text-center text-xs text-proiettore">
-                      In watchlist ✓
-                    </span>
+                    <form action={removeFromWatchlist.bind(null, m.id)}>
+                      <button className="w-full rounded-md border border-proiettore/40 py-1.5 text-center text-xs text-proiettore transition-colors hover:border-red-400/60 hover:text-red-400">
+                        In watchlist ✓
+                      </button>
+                    </form>
                   ) : (
                     <form action={addToWatchlist.bind(null, m.id)}>
                       <button className="w-full rounded-md bg-sipario-chiaro py-1.5 text-xs font-semibold transition-colors hover:bg-proiettore hover:text-notte-fonda">
