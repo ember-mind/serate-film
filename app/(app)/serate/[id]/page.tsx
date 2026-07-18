@@ -179,7 +179,14 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                         }`}
                         aria-pressed={mine}
                       >
-                        <Poster title={m.title} year={m.year} genres={m.genres} className="aspect-2/3 w-full" />
+                        <Poster
+                          title={m.title}
+                          year={m.year}
+                          genres={m.genres}
+                          posterUrl={m.posterUrl}
+                          posterCredit={m.posterCredit}
+                          className="aspect-2/3 w-full"
+                        />
                         <span className="block bg-sipario p-2">
                           <span className="block truncate text-sm font-semibold">{m.title}</span>
                           <span className="mt-0.5 block font-mono text-xs text-fumo">
@@ -255,6 +262,8 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                 title={chosenMovie.title}
                 year={chosenMovie.year}
                 genres={chosenMovie.genres}
+                posterUrl={chosenMovie.posterUrl}
+                posterCredit={chosenMovie.posterCredit}
                 className="h-40 w-28 shrink-0 rounded-md"
               />
               <div className="min-w-0">
@@ -336,6 +345,8 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
               title={chosenMovie.title}
               year={chosenMovie.year}
               genres={chosenMovie.genres}
+              posterUrl={chosenMovie.posterUrl}
+              posterCredit={chosenMovie.posterCredit}
               className="h-40 w-28 shrink-0 rounded-md"
             />
             <div className="min-w-0">

@@ -23,6 +23,8 @@ export const movies = sqliteTable(
     actors: text("actors"),
     genres: text("genres"),
     runtime: integer("runtime"), // minuti
+    posterUrl: text("poster_url"), // Wikimedia Commons, quando trovato (fetch-commons-posters.mjs)
+    posterCredit: text("poster_credit"), // "Autore, Licenza" per attribuzione CC
     addedBy: integer("added_by").references(() => users.id), // null = seed iniziale
   },
   (t) => [uniqueIndex("movies_title_year_unique").on(t.title, t.year)]

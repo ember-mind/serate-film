@@ -12,6 +12,8 @@ export type CatalogMovie = {
   actors: string | null;
   genres: string | null;
   runtime: number | null;
+  posterUrl: string | null;
+  posterCredit: string | null;
   state: "none" | "watchlist" | "watched";
 };
 
@@ -56,6 +58,8 @@ export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
               <Poster
                 title={m.title}
                 genres={m.genres}
+                posterUrl={m.posterUrl}
+                posterCredit={m.posterCredit}
                 showTitle={false}
                 className="aspect-3/2 w-full sm:aspect-2/1"
               />

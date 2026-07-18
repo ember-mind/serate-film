@@ -75,6 +75,8 @@ export default async function HomePage() {
                 title={nextMovie.title}
                 year={nextMovie.year}
                 genres={nextMovie.genres}
+                posterUrl={nextMovie.posterUrl}
+                posterCredit={nextMovie.posterCredit}
                 className="h-36 w-24 shrink-0 rounded-md"
               />
               <div className="min-w-0">
@@ -169,6 +171,8 @@ export default async function HomePage() {
                     title={m.title}
                     year={m.year}
                     genres={m.genres}
+                    posterUrl={m.posterUrl}
+                    posterCredit={m.posterCredit}
                     className="aspect-2/3 w-full rounded-md"
                   />
                 </li>

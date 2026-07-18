@@ -78,6 +78,8 @@ export default async function FilmPage() {
           actors: m.actors,
           genres: m.genres,
           runtime: m.runtime,
+          posterUrl: m.posterUrl,
+          posterCredit: m.posterCredit,
           state: stateOf(m.id),
         }))}
       />

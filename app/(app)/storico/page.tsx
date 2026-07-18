@@ -54,6 +54,8 @@ export default async function StoricoPage() {
                       title={m.title}
                       year={m.year}
                       genres={m.genres}
+                      posterUrl={m.posterUrl}
+                      posterCredit={m.posterCredit}
                       className="h-28 w-20 shrink-0 rounded-md"
                     />
                   )}

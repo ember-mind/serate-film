@@ -37,6 +37,8 @@ export default async function NuovaSerataPage() {
           year: m.year,
           director: m.director,
           genres: m.genres,
+          posterUrl: m.posterUrl,
+          posterCredit: m.posterCredit,
           inWatchlist: wlOrder.has(m.id),
         }))}
       />

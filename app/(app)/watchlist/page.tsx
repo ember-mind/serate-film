@@ -47,7 +47,14 @@ export default async function WatchlistPage() {
             if (!m) return null;
             return (
               <li key={m.id} className="ticket flex flex-col overflow-hidden">
-                <Poster title={m.title} year={m.year} genres={m.genres} className="aspect-2/3 w-full" />
+                <Poster
+                  title={m.title}
+                  year={m.year}
+                  genres={m.genres}
+                  posterUrl={m.posterUrl}
+                  posterCredit={m.posterCredit}
+                  className="aspect-2/3 w-full"
+                />
                 <div className="flex flex-1 flex-col p-3">
                   <p className="font-display text-sm font-semibold leading-snug">{m.title}</p>
                   <p className="mt-0.5 font-mono text-xs text-fumo">

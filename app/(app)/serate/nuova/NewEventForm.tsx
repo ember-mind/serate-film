@@ -11,6 +11,8 @@ type PickMovie = {
   year: number | null;
   director: string | null;
   genres: string | null;
+  posterUrl: string | null;
+  posterCredit: string | null;
   inWatchlist: boolean;
 };
 
@@ -75,7 +77,14 @@ export function NewEventForm({ movies }: { movies: PickMovie[] }) {
             onChange={() => toggle(m.id)}
             className="sr-only"
           />
-          <Poster title={m.title} year={m.year} genres={m.genres} className="aspect-2/3 w-full" />
+          <Poster
+            title={m.title}
+            year={m.year}
+            genres={m.genres}
+            posterUrl={m.posterUrl}
+            posterCredit={m.posterCredit}
+            className="aspect-2/3 w-full"
+          />
           <span className="block truncate bg-sipario px-2 py-1.5 text-xs">
             {on ? "✓ " : ""}
             {m.title}

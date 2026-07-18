@@ -1,20 +1,36 @@
 import { genreSlug } from "@/lib/genreArt";
 
-// Locandina: artwork di genere (arte nostra, niente poster ufficiali) + titolo.
+// Locandina: poster reale da Wikimedia Commons quando c'è (posterUrl, solo materiale
+// libero — fetch-commons-posters.mjs), altrimenti artwork di genere (arte nostra) + titolo.
 export function Poster({
   title,
   year,
   genres,
+  posterUrl,
+  posterCredit,
   showTitle = true,
   className = "",
 }: {
   title: string;
   year?: number | null;
   genres?: string | null;
+  posterUrl?: string | null;
+  posterCredit?: string | null;
   showTitle?: boolean;
   className?: string;
 }) {
   const slug = genreSlug(genres);
+  if (posterUrl) {
+    return (
+      <div
+        className={`relative flex flex-col items-end justify-end overflow-hidden bg-sipario-chiaro ${className}`}
+        title={posterCredit ?? undefined}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={posterUrl} alt={`Locandina di ${title}`} className="absolute inset-0 h-full w-full object-cover" />
+      </div>
+    );
+  }
   return (
     <div
       aria-hidden
