@@ -3,9 +3,8 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { createEvent } from "@/lib/actions";
-import { posterUrl } from "@/lib/tmdb";
 
-type WlMovie = { id: number; title: string; year: string | null; posterPath: string | null };
+type WlMovie = { id: number; title: string; year: number | null; director: string | null };
 
 export function NewEventForm({ watchlistMovies }: { watchlistMovies: WlMovie[] }) {
   const [state, action, pending] = useActionState(createEvent, undefined);
@@ -85,7 +84,6 @@ export function NewEventForm({ watchlistMovies }: { watchlistMovies: WlMovie[] }
         <ul className="clear-both grid grid-cols-3 gap-3 sm:grid-cols-4">
           {watchlistMovies.map((m) => {
             const on = selected.has(m.id);
-            const url = posterUrl(m.posterPath, "w185");
             return (
               <li key={m.id}>
                 <label
@@ -102,14 +100,10 @@ export function NewEventForm({ watchlistMovies }: { watchlistMovies: WlMovie[] }
                     onChange={() => toggle(m.id)}
                     className="sr-only"
                   />
-                  {url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt={m.title} className="aspect-2/3 w-full object-cover" />
-                  ) : (
-                    <span className="flex aspect-2/3 items-center justify-center bg-sipario-chiaro p-2 text-center font-display text-xs font-semibold">
-                      {m.title}
-                    </span>
-                  )}
+                  <span className="flex aspect-2/3 flex-col items-center justify-center bg-sipario-chiaro p-2 text-center">
+                    <span className="font-display text-xs font-bold leading-tight">{m.title}</span>
+                    {m.year && <span className="mt-1 font-mono text-[10px] text-fumo">{m.year}</span>}
+                  </span>
                   <span className="block truncate bg-sipario px-2 py-1.5 text-xs">
                     {on ? "✓ " : ""}
                     {m.title}

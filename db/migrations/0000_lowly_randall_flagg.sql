@@ -52,17 +52,17 @@ CREATE TABLE `movie_votes` (
 );
 --> statement-breakpoint
 CREATE TABLE `movies` (
-	`id` integer PRIMARY KEY NOT NULL,
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`title` text NOT NULL,
-	`original_title` text,
-	`year` text,
-	`poster_path` text,
-	`overview` text,
-	`runtime` integer,
+	`year` integer,
+	`director` text,
+	`actors` text,
 	`genres` text,
-	`vote_average` text
+	`added_by` integer,
+	FOREIGN KEY (`added_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `movies_title_year_unique` ON `movies` (`title`,`year`);--> statement-breakpoint
 CREATE TABLE `ratings` (
 	`event_id` integer NOT NULL,
 	`user_id` integer NOT NULL,

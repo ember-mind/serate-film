@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const users = sqliteTable("users", {
@@ -12,18 +12,20 @@ export const users = sqliteTable("users", {
     .default(sql`(datetime('now'))`),
 });
 
-// Cached TMDb data. id = TMDb movie id.
-export const movies = sqliteTable("movies", {
-  id: integer("id").primaryKey(),
-  title: text("title").notNull(),
-  originalTitle: text("original_title"),
-  year: text("year"),
-  posterPath: text("poster_path"),
-  overview: text("overview"),
-  runtime: integer("runtime"),
-  genres: text("genres"),
-  voteAverage: text("vote_average"),
-});
+// Catalogo nostro: fatti puri (titolo, anno, regista, attori). Niente API esterne.
+export const movies = sqliteTable(
+  "movies",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    title: text("title").notNull(),
+    year: integer("year"),
+    director: text("director"),
+    actors: text("actors"),
+    genres: text("genres"),
+    addedBy: integer("added_by").references(() => users.id), // null = seed iniziale
+  },
+  (t) => [uniqueIndex("movies_title_year_unique").on(t.title, t.year)]
+);
 
 export const watchlist = sqliteTable("watchlist", {
   movieId: integer("movie_id")

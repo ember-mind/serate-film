@@ -1,25 +1,31 @@
-import { posterUrl } from "@/lib/tmdb";
-
+// Locandina tipografica: niente immagini esterne, solo titolo e anno.
 export function Poster({
-  path,
   title,
+  year,
   className = "",
 }: {
-  path: string | null | undefined;
   title: string;
+  year?: number | null;
   className?: string;
 }) {
-  const url = posterUrl(path);
-  if (!url) {
-    return (
+  return (
+    <div
+      aria-hidden
+      className={`relative flex flex-col items-center justify-center overflow-hidden bg-sipario-chiaro ${className}`}
+    >
       <div
-        className={`flex items-center justify-center bg-sipario-chiaro text-center text-xs text-fumo ${className}`}
-        aria-hidden
-      >
-        <span className="px-2 font-display font-semibold">{title}</span>
-      </div>
-    );
-  }
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt={`Locandina di ${title}`} className={`object-cover ${className}`} />;
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 30%, rgba(232,184,75,0.10), transparent 65%)",
+        }}
+      />
+      <span className="relative px-2 text-center font-display text-sm font-bold leading-tight">
+        {title}
+      </span>
+      {year && <span className="relative mt-1.5 font-mono text-[10px] text-fumo">{year}</span>}
+      <span className="absolute inset-x-3 bottom-2 border-t border-riga" />
+      <span className="absolute inset-x-3 top-2 border-t border-riga" />
+    </div>
+  );
 }

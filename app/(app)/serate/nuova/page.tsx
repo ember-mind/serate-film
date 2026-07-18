@@ -36,7 +36,7 @@ export default async function NuovaSerataPage() {
           id: m.id,
           title: m.title,
           year: m.year,
-          posterPath: m.posterPath,
+          director: m.director,
         }))}
       />
     </div>

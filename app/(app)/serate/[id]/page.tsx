@@ -179,7 +179,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                         }`}
                         aria-pressed={mine}
                       >
-                        <Poster path={m.posterPath} title={m.title} className="aspect-2/3 w-full" />
+                        <Poster title={m.title} year={m.year} className="aspect-2/3 w-full" />
                         <span className="block bg-sipario p-2">
                           <span className="block truncate text-sm font-semibold">{m.title}</span>
                           <span className="mt-0.5 block font-mono text-xs text-fumo">
@@ -252,18 +252,19 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
           <section className="ticket ticket-glow flex flex-col overflow-hidden sm:flex-row">
             <div className="flex flex-1 gap-4 p-5">
               <Poster
-                path={chosenMovie.posterPath}
                 title={chosenMovie.title}
+                year={chosenMovie.year}
                 className="h-40 w-28 shrink-0 rounded-md"
               />
               <div className="min-w-0">
                 <p className="text-sm text-fumo">
-                  {[chosenMovie.year, chosenMovie.runtime ? `${chosenMovie.runtime} min` : null, chosenMovie.genres]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  {[chosenMovie.year, chosenMovie.genres].filter(Boolean).join(" · ")}
                 </p>
-                {chosenMovie.overview && (
-                  <p className="mt-2 line-clamp-4 text-sm text-schermo/80">{chosenMovie.overview}</p>
+                {chosenMovie.director && (
+                  <p className="mt-2 text-sm text-schermo/80">regia di {chosenMovie.director}</p>
+                )}
+                {chosenMovie.actors && (
+                  <p className="mt-1 text-sm text-schermo/80">con {chosenMovie.actors}</p>
                 )}
                 {event.location && <p className="mt-3 text-sm">📍 {event.location}</p>}
               </div>
@@ -325,8 +326,8 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         <>
           <section className="ticket flex gap-4 p-5">
             <Poster
-              path={chosenMovie.posterPath}
               title={chosenMovie.title}
+              year={chosenMovie.year}
               className="h-40 w-28 shrink-0 rounded-md"
             />
             <div className="min-w-0">
@@ -334,9 +335,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                 {event.chosenDate && formatDateFull(event.chosenDate)}
               </p>
               <p className="mt-1 text-sm text-fumo">
-                {[chosenMovie.year, chosenMovie.runtime ? `${chosenMovie.runtime} min` : null]
-                  .filter(Boolean)
-                  .join(" · ")}
+                {[chosenMovie.year, chosenMovie.director].filter(Boolean).join(" · ")}
               </p>
               <p className="mt-3 text-sm">
                 <span className="text-fumo">In sala:</span>{" "}

@@ -1,46 +1,31 @@
-import { inArray } from "drizzle-orm";
+import { asc, desc, inArray, like, or } from "drizzle-orm";
 import { db } from "@/db";
-import { watchlist } from "@/db/schema";
-import { searchMovies, popularMovies, topRatedMovies, yearOf, hasApiKey, type TmdbMovie } from "@/lib/tmdb";
+import { movies, watchlist } from "@/db/schema";
 import { addToWatchlist } from "@/lib/actions";
 import { requireUser } from "@/lib/auth";
 import { Poster } from "@/components/Poster";
+import { AddMovieForm } from "./AddMovieForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function FilmPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; vista?: string }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
   await requireUser();
-  const { q, vista } = await searchParams;
+  const { q } = await searchParams;
 
-  if (!hasApiKey()) {
-    return (
-      <div className="ticket mx-auto max-w-lg p-6 text-center">
-        <h1 className="font-display text-2xl font-bold">Catalogo spento</h1>
-        <p className="mt-2 text-sm text-fumo">
-          Manca la chiave TMDb. Aggiungi <code className="font-mono text-schermo">TMDB_API_KEY</code>{" "}
-          al file <code className="font-mono text-schermo">.env.local</code> e riavvia.
-        </p>
-      </div>
-    );
-  }
-
-  let results: TmdbMovie[] = [];
-  let heading: string;
-  const view = vista === "migliori" ? "migliori" : "popolari";
-  if (q) {
-    results = await searchMovies(q);
-    heading = `Risultati per “${q}”`;
-  } else if (view === "migliori") {
-    results = await topRatedMovies();
-    heading = "I più votati di sempre";
-  } else {
-    results = await popularMovies();
-    heading = "Popolari adesso";
-  }
+  const results = q
+    ? await db.query.movies.findMany({
+        where: or(
+          like(movies.title, `%${q}%`),
+          like(movies.director, `%${q}%`),
+          like(movies.actors, `%${q}%`)
+        ),
+        orderBy: [desc(movies.year), asc(movies.title)],
+      })
+    : await db.query.movies.findMany({ orderBy: [desc(movies.year), asc(movies.title)] });
 
   const inList =
     results.length > 0
@@ -56,14 +41,21 @@ export default async function FilmPage({
 
   return (
     <div>
-      <h1 className="sr-only">Catalogo film</h1>
+      <div className="mb-6 flex items-baseline justify-between">
+        <div>
+          <p className="eyebrow">Il catalogo</p>
+          <h1 className="font-display text-3xl font-bold tracking-tight">Film</h1>
+        </div>
+        <p className="font-mono text-sm text-fumo">{results.length} titoli</p>
+      </div>
+
       <form className="mb-4 flex gap-2" action="/film" method="GET">
         <input
           type="search"
           name="q"
           defaultValue={q ?? ""}
-          placeholder="Cerca un film…"
-          aria-label="Cerca un film"
+          placeholder="Cerca per titolo, regista o attore…"
+          aria-label="Cerca nel catalogo"
           className="w-full rounded-lg border border-riga bg-sipario px-4 py-2.5 text-schermo placeholder:text-fumo/60"
         />
         <button className="rounded-lg bg-proiettore px-5 font-semibold text-notte-fonda transition-colors hover:bg-proiettore-acceso">
@@ -71,45 +63,30 @@ export default async function FilmPage({
         </button>
       </form>
 
-      {!q && (
-        <nav className="mb-4 flex gap-2" aria-label="Filtri catalogo">
-          <a
-            href="/film"
-            aria-current={view === "popolari" ? "page" : undefined}
-            className={`rounded-full px-4 py-1.5 text-sm ${view === "popolari" ? "bg-sipario-chiaro font-semibold" : "text-fumo hover:text-schermo"}`}
-          >
-            Popolari
-          </a>
-          <a
-            href="/film?vista=migliori"
-            aria-current={view === "migliori" ? "page" : undefined}
-            className={`rounded-full px-4 py-1.5 text-sm ${view === "migliori" ? "bg-sipario-chiaro font-semibold" : "text-fumo hover:text-schermo"}`}
-          >
-            I più votati
-          </a>
-        </nav>
-      )}
-
-      <p className="eyebrow mb-4">{heading}</p>
+      <AddMovieForm />
 
       {results.length === 0 ? (
-        <p className="text-sm text-fumo">Niente. Prova con un altro titolo.</p>
+        <p className="mt-6 text-sm text-fumo">
+          Niente in catalogo per questa ricerca. Aggiungilo tu qui sopra.
+        </p>
       ) : (
-        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-5">
+        <ul className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {results.map((m) => {
             const added = activeIds.has(m.id);
             const watched = watchedIds.has(m.id);
             return (
               <li key={m.id} className="ticket flex flex-col overflow-hidden">
-                <Poster path={m.poster_path} title={m.title} className="aspect-2/3 w-full" />
                 <div className="flex flex-1 flex-col p-3">
-                  <p className="font-display text-sm font-semibold leading-snug">{m.title}</p>
-                  <p className="mb-2 mt-0.5 font-mono text-xs text-fumo">
-                    {[yearOf(m), m.vote_average ? `★ ${m.vote_average.toFixed(1)}` : null]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                  <div className="mt-auto">
+                  <p className="font-display text-base font-bold leading-snug">{m.title}</p>
+                  <p className="mt-0.5 font-mono text-xs text-proiettore">{m.year}</p>
+                  {m.director && <p className="mt-1.5 text-xs text-fumo">regia di {m.director}</p>}
+                  {m.actors && <p className="mt-0.5 line-clamp-2 text-xs text-fumo">con {m.actors}</p>}
+                  {m.genres && (
+                    <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-fumo/70">
+                      {m.genres}
+                    </p>
+                  )}
+                  <div className="mt-3">
                     {watched ? (
                       <span className="block rounded-md border border-riga py-1.5 text-center text-xs text-fumo">
                         Già vista

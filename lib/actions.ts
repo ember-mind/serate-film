@@ -19,7 +19,6 @@ import {
 } from "@/db/schema";
 import { createSession, destroySession } from "@/lib/session";
 import { requireUser, requireAdmin } from "@/lib/auth";
-import { movieDetails, yearOf } from "@/lib/tmdb";
 
 // ---------- auth ----------
 
@@ -41,31 +40,39 @@ export async function logout() {
 
 // ---------- film / watchlist ----------
 
-async function cacheMovie(tmdbId: number) {
-  const existing = await db.query.movies.findFirst({ where: eq(movies.id, tmdbId) });
-  if (existing) return existing;
-  const d = await movieDetails(tmdbId);
-  const row = {
-    id: d.id,
-    title: d.title,
-    originalTitle: d.original_title,
-    year: yearOf(d),
-    posterPath: d.poster_path,
-    overview: d.overview,
-    runtime: d.runtime,
-    genres: d.genres.map((g) => g.name).join(", "),
-    voteAverage: d.vote_average ? d.vote_average.toFixed(1) : null,
-  };
-  await db.insert(movies).values(row).onConflictDoNothing();
-  return row;
+export async function createMovie(_prev: { error?: string } | undefined, formData: FormData) {
+  const user = await requireUser();
+  const title = String(formData.get("title") ?? "").trim();
+  const yearRaw = String(formData.get("year") ?? "").trim();
+  const year = yearRaw ? Number(yearRaw) : null;
+  const director = String(formData.get("director") ?? "").trim() || null;
+  const actors = String(formData.get("actors") ?? "").trim() || null;
+  const genres = String(formData.get("genres") ?? "").trim() || null;
+
+  if (!title) return { error: "Il titolo serve." };
+  if (year !== null && (!Number.isInteger(year) || year < 1888 || year > 2100)) {
+    return { error: "Anno non valido." };
+  }
+
+  const [movie] = await db
+    .insert(movies)
+    .values({ title, year, director, actors, genres, addedBy: user.id })
+    .onConflictDoNothing()
+    .returning();
+  if (!movie) return { error: "Film già in catalogo (stesso titolo e anno)." };
+
+  // chi aggiunge un film a mano lo vuole quasi sempre in watchlist
+  await db.insert(watchlist).values({ movieId: movie.id, addedBy: user.id }).onConflictDoNothing();
+  revalidatePath("/film");
+  revalidatePath("/watchlist");
+  return {};
 }
 
-export async function addToWatchlist(tmdbId: number) {
+export async function addToWatchlist(movieId: number) {
   const user = await requireUser();
-  await cacheMovie(tmdbId);
   await db
     .insert(watchlist)
-    .values({ movieId: tmdbId, addedBy: user.id })
+    .values({ movieId, addedBy: user.id })
     .onConflictDoUpdate({
       target: watchlist.movieId,
       set: { status: "active", addedBy: user.id },

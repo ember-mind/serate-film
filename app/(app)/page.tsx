@@ -51,8 +51,8 @@ export default async function HomePage() {
           >
             <div className="flex flex-1 gap-4 p-5">
               <Poster
-                path={nextMovie.posterPath}
                 title={nextMovie.title}
+                year={nextMovie.year}
                 className="h-36 w-24 shrink-0 rounded-md"
               />
               <div className="min-w-0">
@@ -60,7 +60,11 @@ export default async function HomePage() {
                   {nextMovie.title}
                 </h1>
                 <p className="mt-1 text-sm text-fumo">
-                  {[nextMovie.year, nextMovie.runtime ? `${nextMovie.runtime} min` : null, nextMovie.genres]
+                  {[
+                    nextMovie.year,
+                    nextMovie.director ? `regia di ${nextMovie.director}` : null,
+                    nextMovie.genres,
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
@@ -136,7 +140,7 @@ export default async function HomePage() {
               if (!m) return null;
               return (
                 <li key={m.id}>
-                  <Poster path={m.posterPath} title={m.title} className="aspect-2/3 w-full rounded-md" />
+                  <Poster title={m.title} year={m.year} className="aspect-2/3 w-full rounded-md" />
                 </li>
               );
             })}

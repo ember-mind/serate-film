@@ -47,13 +47,13 @@ export default async function WatchlistPage() {
             if (!m) return null;
             return (
               <li key={m.id} className="ticket flex flex-col overflow-hidden">
-                <Poster path={m.posterPath} title={m.title} className="aspect-2/3 w-full" />
+                <Poster title={m.title} year={m.year} className="aspect-2/3 w-full" />
                 <div className="flex flex-1 flex-col p-3">
                   <p className="font-display text-sm font-semibold leading-snug">{m.title}</p>
                   <p className="mt-0.5 font-mono text-xs text-fumo">
-                    {[m.year, m.runtime ? `${m.runtime}′` : null].filter(Boolean).join(" · ")}
+                    {[m.year, m.director].filter(Boolean).join(" · ")}
                   </p>
-                  <p className="mb-2 mt-1 text-xs text-fumo">di {nameOf(w.addedBy)}</p>
+                  <p className="mb-2 mt-1 text-xs text-fumo">scelto da {nameOf(w.addedBy)}</p>
                   <form action={removeFromWatchlist.bind(null, m.id)} className="mt-auto">
                     <button className="w-full rounded-md border border-riga py-1.5 text-xs text-fumo transition-colors hover:border-velluto hover:text-velluto">
                       Togli
