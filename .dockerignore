@@ -1,0 +1,8 @@
+node_modules
+.next
+data
+.env*
+.git
+PROJECT.md
+ZSHRC-FUNCTION.txt
+.project-meta.yaml
