@@ -104,3 +104,28 @@
 
 - Output: `public/posters/generated/2019-c-era-una-volta-a-hollywood.webp`
 - Prompt: `Use case: photorealistic-natural. Asset type: website film artwork, landscape 16:9. Primary request: Original cinematic key art inspired by Once Upon a Time in Hollywood (2019): a sun-bleached 1960s Los Angeles boulevard at magic hour, a vintage yellow convertible parked beneath a glowing cinema marquee with the lettering absent, palm trees, hazy hills, nostalgic dreamlike Hollywood. Style/medium: polished realistic cinematic photography, subtle film grain. Composition/framing: clean wide landscape, no people. Lighting/mood: saturated golden sunset. Color palette: mustard yellow, coral pink, cyan sky, dusty beige. Constraints: original image, not poster/frame recreation. Avoid: text, typography, title, logos, watermarks, actor likenesses.`
+
+## 1917 (2019)
+
+- Output: `public/posters/generated/2019-1917.webp`
+- Prompt: `Use case: photorealistic-natural. Asset type: website film artwork, landscape 16:9. Primary request: Original cinematic key art inspired by 1917 (2019): a lone muddy field telephone standing beside a narrow trench path across a devastated spring battlefield, cherry blossoms drifting through smoke at dawn, one distant flare in a vast sky. Style/medium: polished realistic war cinema, subtle film grain. Composition/framing: clean wide landscape, no people. Lighting/mood: pale sunrise through mist. Color palette: mud brown, mist grey, pale blue, blossom white. Constraints: original image, not poster/frame recreation. Avoid: text, typography, title, logos, watermarks, military insignia.`
+
+## Avengers: Endgame (2019)
+
+- Output: `public/posters/generated/2019-avengers-endgame.webp`
+- Prompt: `Use case: stylized-concept. Asset type: website film artwork, landscape 16:9. Primary request: Original cinematic key art inspired by Avengers: Endgame (2019): a broken circular cosmic gateway standing alone on a scorched field at sunrise, a single small glowing gauntlet-like mechanical hand silhouette on the ground, universe-scale sacrifice and hope. Style/medium: polished realistic epic science-fiction cinema, subtle film grain. Composition/framing: clean wide landscape, no characters. Lighting/mood: gold dawn through violet smoke. Color palette: charcoal, indigo, warm gold. Constraints: original image, not poster/frame recreation. Avoid: text, typography, title, logos, watermarks, superhero costumes, recognizable copyrighted character designs.`
+
+## Storia di un matrimonio (2019)
+
+- Output: `public/posters/generated/2019-storia-di-un-matrimonio.webp`
+- Prompt: `Use case: photorealistic-natural. Asset type: website film artwork, landscape 16:9. Primary request: Original cinematic key art inspired by Marriage Story (2019): a half-packed apartment at late afternoon, two mugs on opposite ends of a kitchen counter, a child's drawing held by a magnet on the refrigerator, quiet separation and tenderness. Style/medium: polished realistic domestic drama cinema, subtle film grain. Composition/framing: clean wide landscape, no people. Lighting/mood: warm fading window light. Color palette: soft beige, muted blue, amber. Constraints: original image, not poster/frame recreation. Avoid: text, typography, title, logos, watermarks, actor likenesses.`
+
+## Cena con delitto - Knives Out (2019)
+
+- Output: `public/posters/generated/2019-cena-con-delitto-knives-out.webp`
+- Prompt: `Use case: photorealistic-natural. Asset type: website film artwork, landscape 16:9. Primary request: Original cinematic key art inspired by Knives Out (2019): an ornate country manor library at night, a circular arrangement of antique knives on a velvet table, a single broken ivory chess piece, warm lamps and a deep mystery beyond the doorway. Style/medium: polished realistic whodunit cinema, subtle film grain. Composition/framing: clean wide landscape, no people. Lighting/mood: warm tungsten light with cool stormy windows. Color palette: oxblood, walnut, brass, midnight blue. Constraints: original image, not poster/frame recreation. Avoid: text, typography, title, logos, watermarks, actor likenesses.`
+
+## Jojo Rabbit (2019)
+
+- Output: `public/posters/generated/2019-jojo-rabbit.webp`
+- Prompt: `Use case: historical-scene. Asset type: website film artwork, landscape 16:9. Primary request: Original cinematic key art inspired by Jojo Rabbit (2019): a child's red shoes on a quiet wartime German street, a hand-drawn paper rabbit tucked beside them, bunting and propaganda colors blurred far in the background, tender absurdity against danger. Style/medium: polished realistic tragicomic period cinema, subtle film grain. Composition/framing: clean wide landscape, no people. Lighting/mood: soft overcast afternoon. Color palette: dusty red, cream, slate blue. Constraints: original image, not poster/frame recreation. Avoid: text, typography, title, logos, watermarks, flags, actor likenesses.`
