@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { desc, eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { events, movies } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
@@ -19,7 +19,11 @@ export default async function SeratePage() {
   const me = await requireUser();
 
   const all = await filterVisible(
-    await db.query.events.findMany({ orderBy: desc(events.createdAt) }),
+    // Le annullate spariscono dal cartellone; restano raggiungibili via URL diretto.
+    await db.query.events.findMany({
+      where: ne(events.status, "cancelled"),
+      orderBy: desc(events.createdAt),
+    }),
     me
   );
   const movieIds = all.map((e) => e.chosenMovieId).filter((x): x is number => Boolean(x));
