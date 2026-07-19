@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { events, movies, users, watchlist } from "@/db/schema";
 import { Poster } from "@/components/Poster";
 import { Avatar } from "@/components/Avatar";
+import { Cinepresa } from "@/components/Cinepresa";
 import { randomQuote } from "@/lib/quotes";
 import { requireUser } from "@/lib/auth";
 import { formatDateFull } from "@/lib/dates";
@@ -47,7 +48,24 @@ export default async function HomePage() {
       : [];
 
   const people = await db.query.users.findMany({ orderBy: asc(users.name) });
-  const seen = await db.query.events.findMany({ where: eq(events.status, "done") });
+  const seen = await db.query.events.findMany({
+    where: eq(events.status, "done"),
+    orderBy: desc(events.chosenDate),
+  });
+
+  // manifesti in corridoio: le ultime proiezioni appese alla parete
+  const wallEvents = seen.filter((e) => e.chosenMovieId).slice(0, 4);
+  const wallMovies =
+    wallEvents.length > 0
+      ? await db.query.movies.findMany({
+          where: inArray(
+            movies.id,
+            wallEvents.map((e) => e.chosenMovieId!)
+          ),
+        })
+      : [];
+  const tilts = ["-2.2deg", "1.6deg", "-1.2deg", "2.4deg"];
+
   const quote = randomQuote();
   const firstName = me.name.split(" ")[0];
   const giorni = next?.chosenDate ? giorniAlla(next.chosenDate) : null;
@@ -74,6 +92,8 @@ export default async function HomePage() {
         <p className="eyebrow mb-3 px-4" id="prossima">
           Stasera in sala
         </p>
+        <div className="relative mt-14 sm:mt-16">
+        <Cinepresa />
         {next && nextMovie ? (
           <Link href={`/serate/${next.id}`} className="cinemascope block px-5 py-8 sm:px-10">
             <div className="mx-auto flex max-w-3xl flex-col items-center gap-6 sm:flex-row sm:items-stretch">
@@ -120,6 +140,7 @@ export default async function HomePage() {
             </Link>
           </div>
         )}
+        </div>
       </section>
 
       {/* si vota */}
@@ -194,6 +215,50 @@ export default async function HomePage() {
           </p>
         )}
       </section>
+
+      {/* corridoio: manifesti delle proiezioni passate */}
+      {wallEvents.length > 0 && (
+        <section aria-labelledby="corridoio" className="corridoio -mx-4 px-6 pb-10 pt-12">
+          <div className="mx-auto max-w-3xl">
+            <div className="mb-10 flex items-baseline justify-between">
+              <p className="eyebrow" id="corridoio">
+                In corridoio · già proiettati
+              </p>
+              <Link
+                href="/storico"
+                className="font-mono text-xs uppercase tracking-[0.18em] text-fumo hover:text-schermo"
+              >
+                Storico →
+              </Link>
+            </div>
+            <ul className="flex flex-wrap items-start justify-center gap-x-8 gap-y-12">
+              {wallEvents.map((e, i) => {
+                const m = wallMovies.find((x) => x.id === e.chosenMovieId);
+                if (!m) return null;
+                return (
+                  <li
+                    key={e.id}
+                    className="manifesto w-28 sm:w-32"
+                    style={{ "--tilt": tilts[i % tilts.length] } as React.CSSProperties}
+                  >
+                    <Link href={`/serate/${e.id}`} className="block">
+                      <Poster
+                        title={m.title}
+                        year={m.year}
+                        genres={m.genres}
+                        posterUrl={m.posterUrl}
+                        posterCredit={m.posterCredit}
+                        className="aspect-2/3 w-full"
+                      />
+                      <p className="targhetta">{m.title}</p>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* la sala */}
       <section

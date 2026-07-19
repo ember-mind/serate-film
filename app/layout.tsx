@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Cinzel, Spline_Sans, Spline_Sans_Mono } from "next/font/google";
-import { Popcorn } from "@/components/Popcorn";
 import "./globals.css";
 
 const cinzel = Cinzel({
@@ -36,7 +35,6 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <div className="grain" aria-hidden />
-        <Popcorn />
         {children}
       </body>
     </html>
