@@ -171,3 +171,21 @@ Style/medium: realistic poetic cinema, rugged natural texture, restrained black,
 Composition/framing: wide low-angle 16:9, strong scale, clean uncluttered image.
 Constraints: no people, no actor likenesses, no logos, no title, no typography, no watermark, entirely original.
 ```
+
+## 2010 — Rubber
+
+Output: `public/posters/generated/2010-rubber.webp`
+
+```text
+Use case: stylized-concept
+Asset type: website film artwork, landscape 16:9
+Primary request: Create original cinematic key art inspired by themes and absurd black-comedy horror of Rubber (2010), without copying any official poster or film frame.
+Scene/backdrop: Empty sun-bleached desert highway beside a weathered roadside motel at late afternoon.
+Subject: One ordinary black car tire standing upright by itself in middle distance, casting an unnaturally long shadow; several empty folding cinema chairs face it from far foreground, suggesting spectators and absurd meta-cinema.
+Style/medium: Polished realistic cinematic photography, slightly surreal, restrained fine film grain, same premium horizontal key-art language as an arthouse cinema catalog.
+Composition/framing: Clean wide 16:9 landscape, strong desert negative space, tire clearly readable but not character-like, no people.
+Lighting/mood: Harsh pale desert sun with ominous stillness and dry black humor.
+Color palette: Dusty ochre, faded cyan sky, charcoal black, restrained rust red.
+Constraints: Distinct original image; generic tire and location; no official imagery; no recognizable actor likenesses; no gore.
+Avoid: Text, typography, title, logos, trademarks, watermarks, people, faces, blood, copied poster composition.
+```

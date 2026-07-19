@@ -565,3 +565,19 @@ Film-specific cues: a Tudor-era Stratford cottage after plague, one empty child'
 Style: intimate natural-light Tudor period cinematography, emotionally precise editorial still life, soft analog film grain, authentic wood, linen, herbs, and winter light.
 Mood and palette: oak brown, linen cream, herb green, plague gray, one warm candle; Agnes, William Shakespeare, twins, lost son Hamnet, grief transformed into Hamlet.
 Constraints: no people or real-person likeness, no body or illness depiction, no copied set/costume, no readable manuscript text, no logo, no title, no typography, no watermark. Viewer familiar with story should identify film from combined cues.
+
+## 2025 — Weapons
+
+Output: `public/posters/generated/2025-weapons.webp`
+
+Use case: photorealistic-natural
+Asset type: website film artwork, landscape 16:9
+Primary request: Create original cinematic key art inspired by mystery-horror themes of Weapons (2025), without copying any official poster, trailer shot, film frame, or production design.
+Scene/backdrop: Silent elementary-school classroom before dawn, viewed from low at doorway; rows of small empty desks and chairs, curtains lifting slightly in cold air, dark corridor beyond.
+Subject: Seventeen empty chairs subtly arranged across classroom and one closed school backpack left alone near center aisle; analogue wall clock with hands around 2:17 but no readable numerals needed.
+Style/medium: Polished realistic cinematic photography, unsettling supernatural mystery, restrained fine film grain, premium horizontal key-art language for an arthouse cinema catalog.
+Composition/framing: Wide symmetrical 16:9, strong leading lines, no people or human silhouettes.
+Lighting/mood: Cold blue pre-dawn light with one weak amber hallway lamp, deep controlled shadows, quiet dread.
+Color palette: Desaturated slate blue, institutional green, charcoal, small muted amber accent.
+Constraints: Distinct original image; no characters; no violence; no literal weapons; no official imagery or recognizable location.
+Avoid: Text, typography, title, logos, watermarks, actors, people, children, faces, blood, gore, copied poster composition.
