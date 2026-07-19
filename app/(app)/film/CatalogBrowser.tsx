@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { addToWatchlist, removeFromWatchlist } from "@/lib/actions";
 import { Poster } from "@/components/Poster";
 
@@ -32,28 +33,34 @@ function decadeOf(year: number | null) {
 function Card({ m }: { m: CatalogMovie }) {
   return (
     <li className="ticket flex flex-col overflow-hidden">
-      <Poster
-        title={m.title}
-        year={m.year}
-        genres={m.genres}
-        posterUrl={m.posterUrl}
-        posterCredit={m.posterCredit}
-        showTitle={false}
-        className="aspect-3/2 w-full sm:aspect-2/1"
-      />
-      <div className="flex flex-1 flex-col p-3.5">
-        <p className="titlecard text-[13px] leading-snug text-schermo">{m.title}</p>
-        <p className="mt-1 font-mono text-xs text-proiettore">
-          {[m.year, m.runtime ? `${m.runtime}′` : null].filter(Boolean).join(" · ")}
-        </p>
-        {m.director && <p className="mt-1.5 text-xs text-fumo">regia di {m.director}</p>}
-        {m.actors && <p className="mt-0.5 line-clamp-2 text-xs text-fumo">con {m.actors}</p>}
-        {m.genres && (
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-fumo/70">
-            {m.genres}
+      <Link href={`/film/${m.id}`} className="group flex flex-col">
+        <Poster
+          title={m.title}
+          year={m.year}
+          genres={m.genres}
+          posterUrl={m.posterUrl}
+          posterCredit={m.posterCredit}
+          showTitle={false}
+          className="aspect-3/2 w-full sm:aspect-2/1"
+        />
+        <div className="flex flex-col p-3.5 pb-0">
+          <p className="titlecard text-[13px] leading-snug text-schermo transition-colors group-hover:text-proiettore">
+            {m.title}
           </p>
-        )}
-        <div className="mt-3">
+          <p className="mt-1 font-mono text-xs text-proiettore">
+            {[m.year, m.runtime ? `${m.runtime}′` : null].filter(Boolean).join(" · ")}
+          </p>
+          {m.director && <p className="mt-1.5 text-xs text-fumo">regia di {m.director}</p>}
+          {m.actors && <p className="mt-0.5 line-clamp-2 text-xs text-fumo">con {m.actors}</p>}
+          {m.genres && (
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-fumo/70">
+              {m.genres}
+            </p>
+          )}
+        </div>
+      </Link>
+      <div className="flex flex-1 flex-col justify-end p-3.5 pt-3">
+        <div>
           {m.state === "watched" ? (
             <span className="block rounded-sm border border-riga py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-fumo">
               Già vista
