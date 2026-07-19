@@ -129,3 +129,18 @@
 
 - Output: `public/posters/generated/2019-jojo-rabbit.webp`
 - Prompt: `Use case: historical-scene. Asset type: website film artwork, landscape 16:9. Primary request: Original cinematic key art inspired by Jojo Rabbit (2019): a child's red shoes on a quiet wartime German street, a hand-drawn paper rabbit tucked beside them, bunting and propaganda colors blurred far in the background, tender absurdity against danger. Style/medium: polished realistic tragicomic period cinema, subtle film grain. Composition/framing: clean wide landscape, no people. Lighting/mood: soft overcast afternoon. Color palette: dusty red, cream, slate blue. Constraints: original image, not poster/frame recreation. Avoid: text, typography, title, logos, watermarks, flags, actor likenesses.`
+
+## 2015 generated artwork
+
+Shared constraints: original polished cinematic 16:9 key art; no copied poster/frame, typography, logo, watermark, actor likeness, or recognizable copyrighted character design. Final conversion: 960×540 WebP, method 6, quality 58 then reduced as needed under 90 KB.
+
+- `2015-mad-max-fury-road.webp` — blazing salt flat, custom pursuit car chasing a war rig, fuel canister/red storm.
+- `2015-revenant-redivivo.webp` — frozen river, trapper canoe, bear claw marks and mountain trek.
+- `2015-sopravvissuto-the-martian.webp` — orange Mars habitat, potato crop, rover and distant Earth.
+- `2015-il-caso-spotlight.webp` — investigation desk, archive folders/rotary phone, Boston church spire.
+- `2015-inside-out.webp` — memory-orb control console, five colored marbles, maze-like mind landscape.
+- `2015-ex-machina.webp` — forest glass research house, transparent robot hand, chessboard/keycard.
+- `2015-star-wars-il-risveglio-della-forza.webp` — desert scavenger setting, wrecked giant starship hull, generic rolling droid-like device and masked silhouette.
+- `2015-the-hateful-eight.webp` — snowbound Wyoming cabin, buried stagecoach, eight coat silhouettes and secured revolver.
+- `2015-lo-chiamavano-jeeg-robot.webp` — Tiber riverbank, emerging anonymous silhouette, robot toy bag and Roman brutalist blocks.
+- `2015-sicario.webp` — US–Mexico border tunnel, black convoy, aerial shadow and desert police beacon.
