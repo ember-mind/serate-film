@@ -214,6 +214,7 @@ const RUNTIMES = {
   "Frankenstein": 149,
   "Avatar - Fuoco e cenere": 197,
   "Hamnet": 125,
+  "Backrooms": 111,
 };
 
 const dbPath = process.env.DATABASE_PATH ?? "./data/serate.db";

@@ -220,6 +220,7 @@ const FILMS = [
   ["Frankenstein", 2025, "Guillermo del Toro", "Oscar Isaac, Jacob Elordi", "Gotico, Drammatico"],
   ["Avatar - Fuoco e cenere", 2025, "James Cameron", "Sam Worthington, Zoe Saldana", "Fantascienza, Avventura"],
   ["Hamnet", 2025, "Chloé Zhao", "Jessie Buckley, Paul Mescal", "Drammatico, Storico"],
+  ["Backrooms", 2026, "Kane Parsons", "Chiwetel Ejiofor, Renate Reinsve, Mark Duplass", "Horror, Fantascienza, Thriller"],
 ];
 
 const dbPath = process.env.DATABASE_PATH ?? "./data/serate.db";

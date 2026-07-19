@@ -165,6 +165,7 @@ const GENERATED_POSTERS: Record<string, string> = {
   "2025\u0000Frankenstein": "/posters/generated/2025-frankenstein.webp",
   "2025\u0000Avatar - Fuoco e cenere": "/posters/generated/2025-avatar-fuoco-e-cenere.webp",
   "2025\u0000Hamnet": "/posters/generated/2025-hamnet.webp",
+  "2026\u0000Backrooms": "/posters/generated/2026-backrooms.webp",
 };
 
 export function generatedPosterFor(title: string, year?: number | null): string | null {
