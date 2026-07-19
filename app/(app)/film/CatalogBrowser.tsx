@@ -34,6 +34,7 @@ function Card({ m }: { m: CatalogMovie }) {
     <li className="ticket flex flex-col overflow-hidden">
       <Poster
         title={m.title}
+        year={m.year}
         genres={m.genres}
         posterUrl={m.posterUrl}
         posterCredit={m.posterCredit}

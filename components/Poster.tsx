@@ -1,4 +1,5 @@
 import { genreSlug } from "@/lib/genreArt";
+import { generatedPosterFor } from "@/lib/generatedPosters";
 
 // Locandina: poster reale da Wikimedia Commons quando c'è (posterUrl, solo materiale
 // libero — fetch-commons-posters.mjs), altrimenti artwork di genere (arte nostra) + titolo.
@@ -20,16 +21,18 @@ export function Poster({
   className?: string;
 }) {
   const slug = genreSlug(genres);
-  if (posterUrl) {
+  const generatedPoster = generatedPosterFor(title, year);
+  const artworkUrl = generatedPoster ?? posterUrl;
+  if (artworkUrl) {
     return (
       <div
         className={`relative flex flex-col items-end justify-end overflow-hidden bg-sipario-chiaro ${className}`}
-        title={posterCredit ?? undefined}
+        title={generatedPoster ? undefined : (posterCredit ?? undefined)}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={posterUrl}
-          alt={`Locandina di ${title}`}
+          src={artworkUrl}
+          alt={`Immagine di ${title}`}
           className="nitrato absolute inset-0 h-full w-full object-cover"
         />
       </div>
