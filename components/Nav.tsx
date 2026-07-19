@@ -22,7 +22,8 @@ export function Nav({ isAdmin, userName }: { isAdmin: boolean; userName: string 
       {/* insegna */}
       <header className="sticky top-0 z-20 border-b border-riga bg-notte/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5">
-          <Link href="/" className="titlecard text-lg text-schermo">
+          <Link href="/" className="titlecard flex items-center gap-2 text-lg text-schermo">
+            <span className="reel" aria-hidden />
             Serate<span className="text-proiettore"> Film</span>
           </Link>
           <nav className="hidden gap-6 sm:flex" aria-label="Principale">
