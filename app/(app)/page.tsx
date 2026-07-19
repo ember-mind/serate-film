@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { events, movies, users, watchlist } from "@/db/schema";
 import { Poster } from "@/components/Poster";
 import { Avatar } from "@/components/Avatar";
-import { quoteOfTheDay } from "@/lib/quotes";
+import { randomQuote } from "@/lib/quotes";
 import { requireUser } from "@/lib/auth";
 import { formatDateFull } from "@/lib/dates";
 
@@ -48,7 +48,7 @@ export default async function HomePage() {
 
   const people = await db.query.users.findMany({ orderBy: asc(users.name) });
   const seen = await db.query.events.findMany({ where: eq(events.status, "done") });
-  const quote = quoteOfTheDay();
+  const quote = randomQuote();
   const firstName = me.name.split(" ")[0];
   const giorni = next?.chosenDate ? giorniAlla(next.chosenDate) : null;
 

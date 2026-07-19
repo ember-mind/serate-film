@@ -1,12 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { login } from "@/lib/actions";
-import { quoteOfTheDay } from "@/lib/quotes";
+import { quoteOfTheDay, randomQuote } from "@/lib/quotes";
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
-  const quote = quoteOfTheDay();
+  // Initial render deve combaciare con l'HTML del server: parte dalla quote
+  // deterministica del giorno, poi passa a una random dopo il mount.
+  const [quote, setQuote] = useState(quoteOfTheDay);
+  useEffect(() => {
+    setQuote(randomQuote());
+  }, []);
 
   return (
     <main className="curtain relative flex min-h-dvh flex-col items-center justify-center px-4 py-10">
@@ -60,8 +65,13 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-10 border-t border-riga pt-6 text-center">
-            <p className="quote text-base">“{quote.text}”</p>
-            <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-fumo">
+            <p className="quote text-base" suppressHydrationWarning>
+              “{quote.text}”
+            </p>
+            <p
+              className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-fumo"
+              suppressHydrationWarning
+            >
               {quote.film} · {quote.year}
             </p>
           </div>

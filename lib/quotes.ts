@@ -19,3 +19,7 @@ export function quoteOfTheDay(date = new Date()) {
   const day = Math.floor((date.getTime() - start) / 86_400_000);
   return QUOTES[day % QUOTES.length];
 }
+
+export function randomQuote() {
+  return QUOTES[Math.floor(Math.random() * QUOTES.length)];
+}
