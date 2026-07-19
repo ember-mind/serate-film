@@ -53,6 +53,7 @@ export async function createMovie(_prev: { error?: string } | undefined, formDat
   const genres = String(formData.get("genres") ?? "").trim() || null;
   const runtimeRaw = String(formData.get("runtime") ?? "").trim();
   const runtime = runtimeRaw ? Number(runtimeRaw) : null;
+  const synopsis = String(formData.get("synopsis") ?? "").trim().slice(0, 1000) || null;
 
   if (!title) return { error: "Il titolo serve." };
   if (year !== null && (!Number.isInteger(year) || year < 1888 || year > 2100)) {
@@ -64,7 +65,7 @@ export async function createMovie(_prev: { error?: string } | undefined, formDat
 
   const [movie] = await db
     .insert(movies)
-    .values({ title, year, director, actors, genres, runtime, addedBy: user.id })
+    .values({ title, year, director, actors, genres, runtime, synopsis, addedBy: user.id })
     .onConflictDoNothing()
     .returning();
   if (!movie) return { error: "Film già in catalogo (stesso titolo e anno)." };

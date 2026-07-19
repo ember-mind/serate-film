@@ -62,6 +62,13 @@ export function AddMovieForm() {
         placeholder="Attori principali (es. Toni Servillo, Carlo Verdone)"
         className="rounded-lg border border-riga bg-notte px-3 py-2.5 text-sm placeholder:text-fumo/50"
       />
+      <textarea
+        name="synopsis"
+        rows={3}
+        maxLength={1000}
+        placeholder="Sinossi: di cosa parla, in 2-3 frasi (facoltativa ma gradita)"
+        className="rounded-lg border border-riga bg-notte px-3 py-2.5 text-sm placeholder:text-fumo/50"
+      />
       {state?.error && (
         <p role="alert" className="text-sm text-velluto">
           {state.error}
