@@ -157,6 +157,31 @@ export async function createEvent(_prev: { error?: string } | undefined, formDat
   redirect(`/serate/${event.id}`);
 }
 
+// Un invitato propone un film in più per la rosa di una serata aperta.
+export async function proposeEventMovie(
+  eventId: number,
+  _prev: { error?: string; ok?: boolean } | undefined,
+  formData: FormData
+) {
+  const user = await requireUser();
+  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
+  if (!event || event.status !== "open") return { error: "Le votazioni sono chiuse." };
+  const invitees = (await inviteesByEvent([eventId])).get(eventId);
+  if (!canSee(event, invitees, user)) return { error: "Serata su invito." };
+
+  const movieId = Number(formData.get("movieId"));
+  const movie = await db.query.movies.findFirst({ where: eq(movies.id, movieId) });
+  if (!movie) return { error: "Scegli un film dal catalogo." };
+
+  const rosa = await db.query.eventMovies.findMany({ where: eq(eventMovies.eventId, eventId) });
+  if (rosa.some((em) => em.movieId === movieId)) return { error: "È già in rosa." };
+  if (rosa.length >= 8) return { error: "La rosa è piena (max 8 film)." };
+
+  await db.insert(eventMovies).values({ eventId, movieId, addedBy: user.id });
+  revalidatePath(`/serate/${eventId}`);
+  return { ok: true };
+}
+
 // Scheda unica: sostituisce in blocco i voti dell'utente su date e film della serata.
 export async function submitVotes(eventId: number, formData: FormData) {
   const user = await requireUser();

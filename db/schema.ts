@@ -25,6 +25,8 @@ export const movies = sqliteTable(
     runtime: integer("runtime"), // minuti
     posterUrl: text("poster_url"), // Wikimedia Commons, quando trovato (fetch-commons-posters.mjs)
     posterCredit: text("poster_credit"), // "Autore, Licenza" per attribuzione CC
+    synopsis: text("synopsis"), // incipit da it.wikipedia, 2-3 frasi (fetch-synopses.mjs)
+    synopsisSource: text("synopsis_source"), // URL della voce, per attribuzione CC BY-SA
     addedBy: integer("added_by").references(() => users.id), // null = seed iniziale
   },
   (t) => [uniqueIndex("movies_title_year_unique").on(t.title, t.year)]
@@ -111,6 +113,7 @@ export const eventMovies = sqliteTable("event_movies", {
   movieId: integer("movie_id")
     .notNull()
     .references(() => movies.id),
+  addedBy: integer("added_by").references(() => users.id), // null = rosa iniziale del creatore
 });
 
 // Sì/No sulla data: la riga esiste = "ci sono"

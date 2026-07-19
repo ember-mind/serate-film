@@ -1,0 +1,1 @@
+ALTER TABLE `event_movies` ADD `added_by` integer REFERENCES users(id);

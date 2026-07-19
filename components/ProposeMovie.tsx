@@ -1,0 +1,79 @@
+"use client";
+
+import { useActionState, useState } from "react";
+import Link from "next/link";
+import { proposeEventMovie } from "@/lib/actions";
+
+type PickMovie = { id: number; title: string; year: number | null };
+
+// Proposta di un film extra per la rosa: cerca nel catalogo, scegli, aggiungi.
+export function ProposeMovie({ eventId, movies }: { eventId: number; movies: PickMovie[] }) {
+  const [state, action, pending] = useActionState(proposeEventMovie.bind(null, eventId), undefined);
+  const [query, setQuery] = useState("");
+
+  const q = query.trim().toLowerCase();
+  const matches = q
+    ? movies.filter((m) => m.title.toLowerCase().includes(q)).slice(0, 8)
+    : [];
+
+  return (
+    <details className="ticket p-5">
+      <summary className="eyebrow cursor-pointer list-none">
+        Manca un titolo? Proponilo per questa serata →
+      </summary>
+      <form action={action} className="mt-4 flex flex-col gap-3">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Cerca nel catalogo…"
+          aria-label="Cerca un film da proporre"
+          className="rounded-lg border border-riga bg-notte px-3 py-2.5 text-sm placeholder:text-fumo/50"
+        />
+        {q && matches.length === 0 && (
+          <p className="text-sm text-fumo">
+            Non è in catalogo.{" "}
+            <Link href="/film" className="text-proiettore underline">
+              Aggiungilo prima in cineteca
+            </Link>
+            , poi torna qui.
+          </p>
+        )}
+        {matches.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {matches.map((m) => (
+              <li key={m.id}>
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-riga bg-notte px-3 py-2 text-sm has-checked:border-proiettore">
+                  <input
+                    type="radio"
+                    name="movieId"
+                    value={m.id}
+                    required
+                    className="accent-[#e8b84b]"
+                  />
+                  {m.title}
+                  {m.year ? <span className="font-mono text-xs text-fumo">{m.year}</span> : null}
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+        {state?.error && (
+          <p role="alert" className="text-sm text-velluto">
+            {state.error}
+          </p>
+        )}
+        {state?.ok && <p className="text-sm text-proiettore">In rosa: ora si vota anche questo.</p>}
+        {matches.length > 0 && (
+          <button
+            type="submit"
+            disabled={pending}
+            className="self-start rounded-lg border border-proiettore px-4 py-2 text-sm font-semibold text-proiettore transition-colors hover:bg-proiettore hover:text-notte-fonda disabled:opacity-60"
+          >
+            {pending ? "Aggiungo…" : "Aggiungi alla rosa"}
+          </button>
+        )}
+      </form>
+    </details>
+  );
+}

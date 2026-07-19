@@ -25,6 +25,7 @@ import {
 } from "@/lib/actions";
 import { canSee, inviteesByEvent } from "@/lib/invites";
 import { Poster } from "@/components/Poster";
+import { ProposeMovie } from "@/components/ProposeMovie";
 import { Stars } from "@/components/Stars";
 import { formatDateFull, formatDateLong } from "@/lib/dates";
 
@@ -95,6 +96,14 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
             eMovies.map((em) => em.id)
           ),
         })
+      : [];
+
+  // catalogo proponibile: tutto ciò che non è già in rosa
+  const proposable =
+    event.status === "open"
+      ? (await db.query.movies.findMany({ orderBy: asc(movies.title) })).filter(
+          (m) => !eMovies.some((em) => em.movieId === m.id)
+        )
       : [];
 
   const chosenMovie = event.chosenMovieId
@@ -216,6 +225,11 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                             {votes.length} {votes.length === 1 ? "timbro" : "timbri"}
                             {votes.length > 0 && ` · ${votes.map((v) => nameOf(v.userId)).join(", ")}`}
                           </span>
+                          {em.addedBy && (
+                            <span className="mt-0.5 block font-mono text-xs text-proiettore/80">
+                              proposto da {nameOf(em.addedBy)}
+                            </span>
+                          )}
                         </span>
                       </label>
                     </li>
@@ -238,6 +252,11 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
               </p>
             </div>
           </form>
+
+          <ProposeMovie
+            eventId={eventId}
+            movies={proposable.map((m) => ({ id: m.id, title: m.title, year: m.year }))}
+          />
 
           {canManage && (
             <section className="ticket p-5" aria-labelledby="chiudi">
