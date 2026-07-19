@@ -9,7 +9,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+# Ogni worker di page-data usa un DB isolato: il volume SQLite esiste solo a runtime.
+RUN DATABASE_PATH=:memory: npm run build
 
 FROM node:22-alpine
 WORKDIR /app
