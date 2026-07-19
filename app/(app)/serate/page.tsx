@@ -3,6 +3,7 @@ import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { events, movies } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { filterVisible } from "@/lib/invites";
 import { formatDateShort } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
@@ -15,9 +16,12 @@ const statusLabel: Record<string, { label: string; cls: string }> = {
 };
 
 export default async function SeratePage() {
-  await requireUser();
+  const me = await requireUser();
 
-  const all = await db.query.events.findMany({ orderBy: desc(events.createdAt) });
+  const all = await filterVisible(
+    await db.query.events.findMany({ orderBy: desc(events.createdAt) }),
+    me
+  );
   const movieIds = all.map((e) => e.chosenMovieId).filter((x): x is number => Boolean(x));
   const ms = movieIds.length > 0 ? await db.query.movies.findMany({ where: inArray(movies.id, movieIds) }) : [];
 

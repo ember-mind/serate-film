@@ -5,6 +5,8 @@ import Link from "next/link";
 import { createEvent } from "@/lib/actions";
 import { Poster } from "@/components/Poster";
 
+type Person = { id: number; name: string };
+
 type PickMovie = {
   id: number;
   title: string;
@@ -18,7 +20,7 @@ type PickMovie = {
 
 const CATALOG_LIMIT = 24;
 
-export function NewEventForm({ movies }: { movies: PickMovie[] }) {
+export function NewEventForm({ movies, people }: { movies: PickMovie[]; people: Person[] }) {
   const [state, action, pending] = useActionState(createEvent, undefined);
   const [dateCount, setDateCount] = useState(2);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -138,6 +140,30 @@ export function NewEventForm({ movies }: { movies: PickMovie[] }) {
             + un&apos;altra data
           </button>
         )}
+      </fieldset>
+
+      <fieldset className="ticket p-5">
+        <legend className="eyebrow float-left mb-3">Gli invitati</legend>
+        <ul className="clear-both grid grid-cols-2 gap-2">
+          {people.map((p) => (
+            <li key={p.id}>
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-riga bg-notte px-3 py-2 text-sm has-checked:border-proiettore">
+                <input
+                  type="checkbox"
+                  name="invitees"
+                  value={p.id}
+                  defaultChecked
+                  className="accent-[#e8b84b]"
+                />
+                {p.name}
+              </label>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-xs text-fumo">
+          Tutti spuntati = serata aperta al club. Togli qualcuno e la serata resta visibile solo
+          agli invitati.
+        </p>
       </fieldset>
 
       <fieldset className="ticket p-5">

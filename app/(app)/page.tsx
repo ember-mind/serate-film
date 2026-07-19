@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { Cinepresa } from "@/components/Cinepresa";
 import { randomQuote } from "@/lib/quotes";
 import { requireUser } from "@/lib/auth";
+import { filterVisible } from "@/lib/invites";
 import { formatDateFull } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
@@ -18,19 +19,25 @@ function giorniAlla(iso: string) {
 
 export default async function HomePage() {
   const me = await requireUser();
-  const scheduled = await db.query.events.findMany({
-    where: eq(events.status, "scheduled"),
-    orderBy: asc(events.chosenDate),
-  });
+  const scheduled = await filterVisible(
+    await db.query.events.findMany({
+      where: eq(events.status, "scheduled"),
+      orderBy: asc(events.chosenDate),
+    }),
+    me
+  );
   const next = scheduled[0] ?? null;
   const nextMovie = next?.chosenMovieId
     ? await db.query.movies.findFirst({ where: eq(movies.id, next.chosenMovieId) })
     : null;
 
-  const open = await db.query.events.findMany({
-    where: eq(events.status, "open"),
-    orderBy: desc(events.createdAt),
-  });
+  const open = await filterVisible(
+    await db.query.events.findMany({
+      where: eq(events.status, "open"),
+      orderBy: desc(events.createdAt),
+    }),
+    me
+  );
 
   const wl = await db.query.watchlist.findMany({
     where: eq(watchlist.status, "active"),

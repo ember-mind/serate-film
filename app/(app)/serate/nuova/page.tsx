@@ -1,6 +1,6 @@
 import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { movies, watchlist } from "@/db/schema";
+import { movies, users, watchlist } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { NewEventForm } from "./NewEventForm";
 
@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function NuovaSerataPage() {
   await requireUser();
+  const people = await db.query.users.findMany({ orderBy: asc(users.name) });
   const wl = await db.query.watchlist.findMany({
     where: eq(watchlist.status, "active"),
     orderBy: desc(watchlist.addedAt),
@@ -41,6 +42,7 @@ export default async function NuovaSerataPage() {
           posterCredit: m.posterCredit,
           inWatchlist: wlOrder.has(m.id),
         }))}
+        people={people.map((p) => ({ id: p.id, name: p.name }))}
       />
     </div>
   );

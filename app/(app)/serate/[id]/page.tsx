@@ -21,9 +21,9 @@ import {
   rateEvent,
   reopenEvent,
   saveEventNotes,
-  toggleDateVote,
-  toggleMovieVote,
+  submitVotes,
 } from "@/lib/actions";
+import { canSee, inviteesByEvent } from "@/lib/invites";
 import { Poster } from "@/components/Poster";
 import { Stars } from "@/components/Stars";
 import { formatDateFull, formatDateLong } from "@/lib/dates";
@@ -42,6 +42,26 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
   const canManage = event.createdBy === user.id || user.isAdmin;
   const people = await db.query.users.findMany({ orderBy: asc(users.name) });
   const nameOf = (uid: number) => people.find((p) => p.id === uid)?.name ?? "?";
+
+  const invitees = (await inviteesByEvent([eventId])).get(eventId) ?? [];
+  const restricted = invitees.length > 0;
+  if (!canSee(event, invitees, user)) {
+    return (
+      <div className="mx-auto max-w-md pt-10 text-center">
+        <p className="eyebrow">Riservato</p>
+        <h1 className="titlecard mt-2 text-2xl text-schermo">Serata su invito</h1>
+        <p className="mt-3 text-sm text-fumo">
+          Questa proiezione è riservata a una lista di invitati. Sarà per la prossima.
+        </p>
+        <Link href="/serate" className="mt-6 inline-block text-sm text-proiettore underline">
+          Torna al cartellone
+        </Link>
+      </div>
+    );
+  }
+  const invitedPeople = restricted
+    ? people.filter((p) => invitees.includes(p.id) || p.id === event.createdBy)
+    : people;
 
   const dates = await db.query.eventDates.findMany({
     where: eq(eventDates.eventId, eventId),
@@ -112,30 +132,35 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         </p>
         <h1 className="titlecard mt-1 text-2xl text-schermo sm:text-3xl">{title}</h1>
         {event.title && chosenMovie && <p className="mt-1 text-sm text-fumo">{event.title}</p>}
+        {restricted && (
+          <p className="mt-2 font-mono text-xs uppercase tracking-[0.18em] text-fumo">
+            Su invito · {invitees.map(nameOf).join(", ")}
+          </p>
+        )}
       </header>
 
       {/* ---------- VOTAZIONE ---------- */}
       {event.status === "open" && (
         <>
-          <section aria-labelledby="vota-date">
-            <p className="eyebrow mb-3" id="vota-date">
-              Atto I · Le date — timbra quando ci sei
-            </p>
-            <ul className="flex flex-col gap-2">
-              {dates.map((d) => {
-                const votes = dVotes.filter((v) => v.eventDateId === d.id);
-                const mine = votes.some((v) => v.userId === user.id);
-                return (
-                  <li key={d.id}>
-                    <form action={toggleDateVote.bind(null, d.id, eventId)}>
-                      <button
-                        data-voted={mine}
-                        className={`stamp flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors ${
-                          mine
-                            ? "border-proiettore bg-proiettore/10"
-                            : "border-riga bg-sipario hover:border-fumo"
-                        }`}
-                      >
+          <form action={submitVotes.bind(null, eventId)} className="flex flex-col gap-8">
+            <section aria-labelledby="vota-date">
+              <p className="eyebrow mb-3" id="vota-date">
+                Atto I · Le date — spunta quando ci sei
+              </p>
+              <ul className="flex flex-col gap-2">
+                {dates.map((d) => {
+                  const votes = dVotes.filter((v) => v.eventDateId === d.id);
+                  const mine = votes.some((v) => v.userId === user.id);
+                  return (
+                    <li key={d.id}>
+                      <label className="stamp flex w-full cursor-pointer items-center justify-between rounded-lg border border-riga bg-sipario px-4 py-3 text-left transition-colors hover:border-fumo has-checked:border-proiettore has-checked:bg-proiettore/10">
+                        <input
+                          type="checkbox"
+                          name="dateIds"
+                          value={d.id}
+                          defaultChecked={mine}
+                          className="peer sr-only"
+                        />
                         <span className="font-mono text-sm capitalize">
                           {formatDateLong(d.date)}
                         </span>
@@ -144,41 +169,39 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                             <span>{votes.map((v) => nameOf(v.userId)).join(", ")}</span>
                           )}
                           <span
-                            className={`rounded-full px-2.5 py-1 font-mono font-semibold ${
-                              mine ? "bg-proiettore text-notte-fonda" : "bg-sipario-chiaro"
-                            }`}
+                            aria-hidden
+                            className="flex h-6 w-6 items-center justify-center rounded-sm border border-riga font-mono font-semibold text-transparent peer-checked:border-proiettore peer-checked:bg-proiettore peer-checked:text-notte-fonda"
                           >
-                            {mine ? "✓ ci sono" : votes.length}
+                            ✓
                           </span>
                         </span>
-                      </button>
-                    </form>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
 
-          <section aria-labelledby="vota-film">
-            <p className="eyebrow mb-3" id="vota-film">
-              Atto II · Il film — timbra tutti quelli che ti vanno bene
-            </p>
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {eMovies.map((em) => {
-                const m = ms.find((x) => x.id === em.movieId);
-                if (!m) return null;
-                const votes = mVotes.filter((v) => v.eventMovieId === em.id);
-                const mine = votes.some((v) => v.userId === user.id);
-                return (
-                  <li key={em.id}>
-                    <form action={toggleMovieVote.bind(null, em.id, eventId)}>
-                      <button
-                        data-voted={mine}
-                        className={`stamp block w-full overflow-hidden rounded-lg border-2 text-left ${
-                          mine ? "border-proiettore" : "border-riga opacity-85 hover:opacity-100"
-                        }`}
-                        aria-pressed={mine}
-                      >
+            <section aria-labelledby="vota-film">
+              <p className="eyebrow mb-3" id="vota-film">
+                Atto II · Il film — spunta tutti quelli che ti vanno bene
+              </p>
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {eMovies.map((em) => {
+                  const m = ms.find((x) => x.id === em.movieId);
+                  if (!m) return null;
+                  const votes = mVotes.filter((v) => v.eventMovieId === em.id);
+                  const mine = votes.some((v) => v.userId === user.id);
+                  return (
+                    <li key={em.id}>
+                      <label className="stamp block w-full cursor-pointer overflow-hidden rounded-lg border-2 border-riga text-left opacity-85 hover:opacity-100 has-checked:border-proiettore has-checked:opacity-100">
+                        <input
+                          type="checkbox"
+                          name="movieIds"
+                          value={em.id}
+                          defaultChecked={mine}
+                          className="sr-only"
+                        />
                         <Poster
                           title={m.title}
                           year={m.year}
@@ -190,18 +213,31 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                         <span className="block bg-sipario p-2">
                           <span className="block truncate text-sm font-semibold">{m.title}</span>
                           <span className="mt-0.5 block font-mono text-xs text-fumo">
-                            {mine ? "✓ mi va bene · " : ""}
                             {votes.length} {votes.length === 1 ? "timbro" : "timbri"}
                             {votes.length > 0 && ` · ${votes.map((v) => nameOf(v.userId)).join(", ")}`}
                           </span>
                         </span>
-                      </button>
-                    </form>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+
+            <div className="ticket ticket-glow flex flex-col gap-2 p-4">
+              <button
+                type="submit"
+                className="titlecard rounded-lg bg-proiettore py-3 text-base text-notte-fonda transition-colors hover:bg-proiettore-acceso"
+              >
+                Vota!
+              </button>
+              <p className="text-center text-xs text-fumo">
+                {dVotes.some((v) => v.userId === user.id) || mVotes.some((v) => v.userId === user.id)
+                  ? "Hai già timbrato: la nuova scheda sostituisce la vecchia."
+                  : "La scheda si può correggere finché le votazioni sono aperte."}
+              </p>
+            </div>
+          </form>
 
           {canManage && (
             <section className="ticket p-5" aria-labelledby="chiudi">
@@ -301,7 +337,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
               <form action={markWatched.bind(null, eventId)} className="flex flex-col gap-3">
                 <p className="text-sm text-fumo">Chi c&apos;era?</p>
                 <ul className="grid grid-cols-2 gap-2">
-                  {people.map((p) => {
+                  {invitedPeople.map((p) => {
                     // pre-spunta chi si era detto disponibile per la data scelta
                     const chosenDateRow = dates.find((d) => d.date === event.chosenDate);
                     const wasAvailable = chosenDateRow

@@ -80,6 +80,21 @@ export const events = sqliteTable("events", {
   notes: text("notes"),
 });
 
+// Inviti: nessuna riga per l'evento = serata aperta a tutto il club.
+// Righe presenti = solo gli invitati (più chi l'ha creata e gli admin) la vedono e votano.
+export const eventInvitees = sqliteTable(
+  "event_invitees",
+  {
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => events.id),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+  },
+  (t) => [primaryKey({ columns: [t.eventId, t.userId] })]
+);
+
 export const eventDates = sqliteTable("event_dates", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   eventId: integer("event_id")

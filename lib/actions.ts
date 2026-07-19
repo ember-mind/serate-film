@@ -11,6 +11,7 @@ import {
   watchlist,
   events,
   eventDates,
+  eventInvitees,
   eventMovies,
   dateVotes,
   movieVotes,
@@ -20,6 +21,7 @@ import {
 } from "@/db/schema";
 import { createSession, destroySession } from "@/lib/session";
 import { requireUser, requireAdmin } from "@/lib/auth";
+import { canSee, inviteesByEvent } from "@/lib/invites";
 
 // ---------- auth ----------
 
@@ -127,41 +129,77 @@ export async function createEvent(_prev: { error?: string } | undefined, formDat
   if (movieIds.length < 1) return { error: "Scegli almeno un film dalla watchlist." };
   if (movieIds.length > 8) return { error: "Massimo 8 film in rosa." };
 
+  // inviti: tutti selezionati = serata aperta al club (nessuna riga)
+  const allUsers = await db.query.users.findMany();
+  const inviteeIds = [
+    ...new Set(
+      formData
+        .getAll("invitees")
+        .map(Number)
+        .filter((n) => allUsers.some((u) => u.id === n))
+    ),
+  ];
+  if (inviteeIds.length === 0) return { error: "Invita almeno una persona." };
+  const restricted = inviteeIds.length < allUsers.length;
+
   const [event] = await db
     .insert(events)
     .values({ title, location, createdBy: user.id })
     .returning();
   await db.insert(eventDates).values(dates.map((date) => ({ eventId: event.id, date })));
   await db.insert(eventMovies).values(movieIds.map((movieId) => ({ eventId: event.id, movieId })));
+  if (restricted) {
+    const withCreator = [...new Set([...inviteeIds, user.id])];
+    await db
+      .insert(eventInvitees)
+      .values(withCreator.map((userId) => ({ eventId: event.id, userId })));
+  }
   redirect(`/serate/${event.id}`);
 }
 
-export async function toggleDateVote(eventDateId: number, eventId: number) {
+// Scheda unica: sostituisce in blocco i voti dell'utente su date e film della serata.
+export async function submitVotes(eventId: number, formData: FormData) {
   const user = await requireUser();
-  const existing = await db.query.dateVotes.findFirst({
-    where: and(eq(dateVotes.eventDateId, eventDateId), eq(dateVotes.userId, user.id)),
-  });
-  if (existing) {
-    await db
-      .delete(dateVotes)
-      .where(and(eq(dateVotes.eventDateId, eventDateId), eq(dateVotes.userId, user.id)));
-  } else {
-    await db.insert(dateVotes).values({ eventDateId, userId: user.id });
-  }
-  revalidatePath(`/serate/${eventId}`);
-}
+  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
+  if (!event || event.status !== "open") return;
+  const invitees = (await inviteesByEvent([eventId])).get(eventId);
+  if (!canSee(event, invitees, user)) return;
 
-export async function toggleMovieVote(eventMovieId: number, eventId: number) {
-  const user = await requireUser();
-  const existing = await db.query.movieVotes.findFirst({
-    where: and(eq(movieVotes.eventMovieId, eventMovieId), eq(movieVotes.userId, user.id)),
-  });
-  if (existing) {
-    await db
-      .delete(movieVotes)
-      .where(and(eq(movieVotes.eventMovieId, eventMovieId), eq(movieVotes.userId, user.id)));
-  } else {
-    await db.insert(movieVotes).values({ eventMovieId, userId: user.id });
+  const pickedDates = new Set(formData.getAll("dateIds").map(Number));
+  const pickedMovies = new Set(formData.getAll("movieIds").map(Number));
+
+  const dates = await db.query.eventDates.findMany({ where: eq(eventDates.eventId, eventId) });
+  const ems = await db.query.eventMovies.findMany({ where: eq(eventMovies.eventId, eventId) });
+
+  if (dates.length > 0) {
+    await db.delete(dateVotes).where(
+      and(
+        inArray(
+          dateVotes.eventDateId,
+          dates.map((d) => d.id)
+        ),
+        eq(dateVotes.userId, user.id)
+      )
+    );
+    const sel = dates.filter((d) => pickedDates.has(d.id));
+    if (sel.length > 0) {
+      await db.insert(dateVotes).values(sel.map((d) => ({ eventDateId: d.id, userId: user.id })));
+    }
+  }
+  if (ems.length > 0) {
+    await db.delete(movieVotes).where(
+      and(
+        inArray(
+          movieVotes.eventMovieId,
+          ems.map((m) => m.id)
+        ),
+        eq(movieVotes.userId, user.id)
+      )
+    );
+    const sel = ems.filter((m) => pickedMovies.has(m.id));
+    if (sel.length > 0) {
+      await db.insert(movieVotes).values(sel.map((m) => ({ eventMovieId: m.id, userId: user.id })));
+    }
   }
   revalidatePath(`/serate/${eventId}`);
 }
