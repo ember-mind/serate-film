@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const items = [
   { href: "/", label: "Stasera" },
   { href: "/film", label: "Cineteca" },
+  { href: "/attori", label: "Attori" },
   { href: "/serate", label: "Proiezioni" },
   { href: "/storico", label: "Registro" },
 ];

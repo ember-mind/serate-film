@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "actors:profiles": "node scripts/fetch-actor-profiles.mjs",
     "posters:manifest": "node scripts/build-generated-posters-manifest.mjs"
   },
   "dependencies": {
