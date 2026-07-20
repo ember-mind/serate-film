@@ -1,4 +1,4 @@
-// Seed del catalogo: film noti ~1995-2025, solo fatti (titolo, anno, regista, attori, generi).
+// Seed del catalogo: film noti ~1985-2026, solo fatti (titolo, anno, regista, attori, generi).
 // Idempotente: INSERT OR IGNORE sulla coppia (titolo, anno).
 // Uso: node scripts/seed-movies.mjs
 import Database from "better-sqlite3";
@@ -9,6 +9,7 @@ import path from "node:path";
 
 // [titolo, anno, regista, attori, generi]
 const FILMS = [
+  ["Scandalosa Gilda", 1985, "Gabriele Lavia", "Monica Guerritore, Gabriele Lavia, Pina Cei", "Drammatico, Erotico"],
   ["Seven", 1995, "David Fincher", "Brad Pitt, Morgan Freeman, Kevin Spacey", "Thriller"],
   ["Heat - La sfida", 1995, "Michael Mann", "Al Pacino, Robert De Niro, Val Kilmer", "Crime, Thriller"],
   ["I soliti sospetti", 1995, "Bryan Singer", "Kevin Spacey, Gabriel Byrne", "Thriller"],

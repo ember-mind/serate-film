@@ -1725,6 +1725,22 @@
     "biographySource": "https://it.wikipedia.org/wiki/Gabriel_Byrne",
     "wikidataSource": "https://www.wikidata.org/wiki/Q296616"
   },
+  "Gabriele Lavia": {
+    "name": "Gabriele Lavia",
+    "wikidataId": "Q183096",
+    "description": "Gabriele Lavia (Milano, 10 ottobre 1942) è un attore, regista e doppiatore italiano.",
+    "birthDate": "10 ottobre 1942",
+    "deathDate": null,
+    "birthPlace": "Milano",
+    "citizenship": [
+      "Italia"
+    ],
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Gabriele_Lavia%2C_ca._1975.jpg/960px-Gabriele_Lavia%2C_ca._1975.jpg",
+    "imageCredit": "Unknown author Unknown author — Public domain",
+    "imageSource": "https://commons.wikimedia.org/wiki/File:Gabriele_Lavia,_ca._1975.jpg",
+    "biographySource": "https://it.wikipedia.org/wiki/Gabriele_Lavia",
+    "wikidataSource": "https://www.wikidata.org/wiki/Q183096"
+  },
   "Gary Oldman": {
     "name": "Gary Oldman",
     "wikidataId": "Q83492",
@@ -3572,6 +3588,22 @@
     "biographySource": "https://it.wikipedia.org/wiki/Miles_Teller",
     "wikidataSource": "https://www.wikidata.org/wiki/Q267330"
   },
+  "Monica Guerritore": {
+    "name": "Monica Guerritore",
+    "wikidataId": "Q368627",
+    "description": "Monica Guerritore (Roma, 5 gennaio 1958) è un'attrice, regista, drammaturga, scrittrice italiana.",
+    "birthDate": "5 gennaio 1958",
+    "deathDate": null,
+    "birthPlace": "Roma",
+    "citizenship": [
+      "Italia"
+    ],
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Foto_Monica_Guerritore_%28per_concessione_di_Azzurra_Primavera%29.jpg/960px-Foto_Monica_Guerritore_%28per_concessione_di_Azzurra_Primavera%29.jpg",
+    "imageCredit": "Trig58 — CC BY-SA 4.0",
+    "imageSource": "https://commons.wikimedia.org/wiki/File:Foto_Monica_Guerritore_(per_concessione_di_Azzurra_Primavera).jpg",
+    "biographySource": "https://it.wikipedia.org/wiki/Monica_Guerritore",
+    "wikidataSource": "https://www.wikidata.org/wiki/Q368627"
+  },
   "Morgan Freeman": {
     "name": "Morgan Freeman",
     "wikidataId": "Q48337",
@@ -3893,6 +3925,23 @@
     "imageSource": "https://commons.wikimedia.org/wiki/File:Pierfrancesco_Favino_2016.jpg",
     "biographySource": "https://it.wikipedia.org/wiki/Pierfrancesco_Favino",
     "wikidataSource": "https://www.wikidata.org/wiki/Q555241"
+  },
+  "Pina Cei": {
+    "name": "Pina Cei",
+    "wikidataId": "Q3905074",
+    "description": "Pina Cei, nome d'arte di Giuseppina Casini (San Juan, 13 giugno 1904 – Roma, 1º febbraio 2000), è stata un'attrice italiana.",
+    "birthDate": "13 giugno 1904",
+    "deathDate": "1 febbraio 2000",
+    "birthPlace": "San Juan",
+    "citizenship": [
+      "Italia",
+      "Regno d'Italia"
+    ],
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/98/Pina_cei.jpg",
+    "imageCredit": "Utente:Striela — Public domain",
+    "imageSource": "https://commons.wikimedia.org/wiki/File:Pina_cei.jpg",
+    "biographySource": "https://it.wikipedia.org/wiki/Pina_Cei",
+    "wikidataSource": "https://www.wikidata.org/wiki/Q3905074"
   },
   "Rachel McAdams": {
     "name": "Rachel McAdams",

@@ -3,6 +3,7 @@
 import Database from "better-sqlite3";
 
 const RUNTIMES = {
+  "Scandalosa Gilda": 85,
   "Seven": 127,
   "Heat - La sfida": 170,
   "I soliti sospetti": 106,

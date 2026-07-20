@@ -1,5 +1,6 @@
 // Generato da scripts/build-generated-posters-manifest.mjs. Non modificare a mano.
 const GENERATED_POSTERS: Record<string, string> = {
+  "1985\u0000Scandalosa Gilda": "/posters/generated/1985-scandalosa-gilda.webp",
   "1995\u0000Seven": "/posters/generated/1995-seven.webp",
   "1995\u0000Heat - La sfida": "/posters/generated/1995-heat-la-sfida.webp",
   "1995\u0000I soliti sospetti": "/posters/generated/1995-i-soliti-sospetti.webp",

@@ -2,7 +2,7 @@
 
 Cinema club privato per il gruppo: catalogo film autonomo, watchlist condivisa, sondaggi data+film con approval voting, storico delle serate viste con presenti, stelline e note.
 
-Nessuna API esterna: il catalogo è nostro (SQLite), pre-caricato con ~200 film noti 1995–2025 (solo fatti: titolo, anno, regista, attori, generi, durata — niente poster né trame di terzi) e ampliabile da qualunque membro dall'interfaccia. Le locandine sono artwork originali per genere (13 illustrazioni in `public/generi/`, generate con Gemini, stile fotobusta dipinta).
+Nessuna API esterna a runtime: il catalogo è nostro (SQLite), pre-caricato con oltre 200 film e ampliabile da qualunque membro. Titoli, anno, regia, cast, generi e durata restano dati locali; le immagini in `public/posters/generated/` sono artwork originali, non poster ufficiali.
 
 ## Stack
 

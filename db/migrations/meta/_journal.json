@@ -57,6 +57,13 @@
       "when": 1784473325027,
       "tag": "0007_seed-synopses",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1784556078263,
+      "tag": "0008_scandalosa-gilda",
+      "breakpoints": true
     }
   ]
 }
