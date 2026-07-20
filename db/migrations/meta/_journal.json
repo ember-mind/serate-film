@@ -64,6 +64,13 @@
       "when": 1784556078263,
       "tag": "0008_scandalosa-gilda",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1784563200000,
+      "tag": "0009_seed-classics",
+      "breakpoints": true
     }
   ]
 }

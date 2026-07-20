@@ -6,6 +6,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import fs from "node:fs";
 import path from "node:path";
+import { CLASSIC_FILMS } from "./classic-films.mjs";
 
 // [titolo, anno, regista, attori, generi]
 const FILMS = [
@@ -233,9 +234,17 @@ migrate(drizzle(db), { migrationsFolder: path.join(process.cwd(), "db", "migrati
 const insert = db.prepare(
   "INSERT OR IGNORE INTO movies (title, year, director, actors, genres) VALUES (?, ?, ?, ?, ?)"
 );
+const insertClassic = db.prepare(
+  "INSERT OR IGNORE INTO movies (title, year, director, actors, genres, runtime, synopsis, synopsis_source) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)"
+);
 let added = 0;
+for (const { title, year, director, actors, genres, runtime, synopsis } of CLASSIC_FILMS) {
+  const res = insertClassic.run(title, year, director || null, actors || null, genres || null, runtime, synopsis);
+  added += res.changes;
+}
 for (const [title, year, director, actors, genres] of FILMS) {
   const res = insert.run(title, year, director || null, actors || null, genres || null);
   added += res.changes;
 }
-console.log(`Catalogo: ${added} film aggiunti (${FILMS.length - added} già presenti).`);
+const total = CLASSIC_FILMS.length + FILMS.length;
+console.log(`Catalogo: ${added} film aggiunti (${total - added} già presenti).`);

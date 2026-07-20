@@ -2,6 +2,7 @@
 // Uso: node scripts/build-generated-posters-manifest.mjs
 import fs from "node:fs";
 import path from "node:path";
+import { CLASSIC_FILMS } from "./classic-films.mjs";
 
 const root = process.cwd();
 const seedPath = path.join(root, "scripts", "seed-movies.mjs");
@@ -18,12 +19,15 @@ function slugify(title) {
 }
 
 const source = fs.readFileSync(seedPath, "utf8");
-const films = [...source.matchAll(/^\s*\["((?:[^"\\]|\\.)*)",\s*(\d{4}),/gm)].map(
-  ([, encodedTitle, year]) => ({
-    title: JSON.parse(`"${encodedTitle}"`),
-    year: Number(year),
-  })
-);
+const films = [
+  ...CLASSIC_FILMS.map(({ title, year }) => ({ title, year })),
+  ...[...source.matchAll(/^\s*\["((?:[^"\\]|\\.)*)",\s*(\d{4}),/gm)].map(
+    ([, encodedTitle, year]) => ({
+      title: JSON.parse(`"${encodedTitle}"`),
+      year: Number(year),
+    })
+  ),
+];
 
 const available = new Set(
   fs.existsSync(artworkDir) ? fs.readdirSync(artworkDir).filter((name) => name.endsWith(".webp")) : []

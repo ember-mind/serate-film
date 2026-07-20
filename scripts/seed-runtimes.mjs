@@ -1,6 +1,7 @@
 // Popola movies.runtime (minuti) per il catalogo seed. Idempotente:
 //   node scripts/seed-runtimes.mjs
 import Database from "better-sqlite3";
+import { CLASSIC_FILMS } from "./classic-films.mjs";
 
 const RUNTIMES = {
   "Scandalosa Gilda": 85,
@@ -225,7 +226,11 @@ db.pragma("journal_mode = WAL");
 const stmt = db.prepare("UPDATE movies SET runtime = ? WHERE title = ? AND runtime IS NULL");
 let updated = 0;
 let missing = 0;
-for (const [title, minutes] of Object.entries(RUNTIMES)) {
+const allRuntimes = [
+  ...CLASSIC_FILMS.map(({ title, runtime }) => [title, runtime]),
+  ...Object.entries(RUNTIMES),
+];
+for (const [title, minutes] of allRuntimes) {
   const r = stmt.run(minutes, title);
   if (r.changes > 0) updated += r.changes;
   else {
