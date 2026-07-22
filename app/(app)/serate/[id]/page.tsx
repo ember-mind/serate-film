@@ -25,6 +25,7 @@ import {
 } from "@/lib/actions";
 import { canSee, inviteesByEvent } from "@/lib/invites";
 import { Poster } from "@/components/Poster";
+import { ProposeDate } from "@/components/ProposeDate";
 import { ProposeMovie } from "@/components/ProposeMovie";
 import { Stars } from "@/components/Stars";
 import { formatDateFull, formatDateLong } from "@/lib/dates";
@@ -252,6 +253,8 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
               </p>
             </div>
           </form>
+
+          <ProposeDate eventId={eventId} />
 
           <ProposeMovie
             eventId={eventId}

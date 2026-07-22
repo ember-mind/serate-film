@@ -36,6 +36,28 @@ export async function login(_prev: { error?: string } | undefined, formData: For
   redirect("/");
 }
 
+export async function signup(_prev: { error?: string } | undefined, formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  const username = String(formData.get("username") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  if (!username || !name || password.length < 6) {
+    return { error: "Servono username, nome e una password di almeno 6 caratteri." };
+  }
+  const [newUser] = await db
+    .insert(users)
+    .values({
+      username,
+      name,
+      passwordHash: await bcrypt.hash(password, 10),
+      isAdmin: false,
+    })
+    .onConflictDoNothing()
+    .returning();
+  if (!newUser) return { error: "Username già in uso." };
+  await createSession(newUser.id);
+  redirect("/");
+}
+
 export async function logout() {
   await destroySession();
   redirect("/login");
@@ -179,6 +201,37 @@ export async function proposeEventMovie(
   if (rosa.length >= 8) return { error: "La rosa è piena (max 8 film)." };
 
   await db.insert(eventMovies).values({ eventId, movieId, addedBy: user.id });
+  revalidatePath(`/serate/${eventId}`);
+  return { ok: true };
+}
+
+// Un invitato propone una data in più per una serata aperta.
+export async function proposeEventDate(
+  eventId: number,
+  _prev: { error?: string; ok?: boolean } | undefined,
+  formData: FormData
+) {
+  const user = await requireUser();
+  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
+  if (!event || event.status !== "open") return { error: "Le votazioni sono chiuse." };
+  const invitees = (await inviteesByEvent([eventId])).get(eventId);
+  if (!canSee(event, invitees, user)) return { error: "Serata su invito." };
+
+  const date = String(formData.get("date") ?? "").trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  const [y, mo, d] = m ? m.slice(1).map(Number) : [0, 0, 0];
+  const asDate = m ? new Date(Date.UTC(y, mo - 1, d)) : null;
+  const valid =
+    asDate && asDate.getUTCFullYear() === y && asDate.getUTCMonth() === mo - 1 && asDate.getUTCDate() === d;
+  if (!valid) return { error: "Data non valida." };
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (date < todayStr) return { error: "La data è già passata." };
+
+  const existing = await db.query.eventDates.findMany({ where: eq(eventDates.eventId, eventId) });
+  if (existing.some((d) => d.date === date)) return { error: "È già tra le date proposte." };
+  if (existing.length >= 5) return { error: "Massimo 5 date." };
+
+  await db.insert(eventDates).values({ eventId, date });
   revalidatePath(`/serate/${eventId}`);
   return { ok: true };
 }

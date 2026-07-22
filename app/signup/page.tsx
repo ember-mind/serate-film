@@ -2,11 +2,11 @@
 
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import { login } from "@/lib/actions";
+import { signup } from "@/lib/actions";
 import { quoteOfTheDay, randomQuote } from "@/lib/quotes";
 
-export default function LoginPage() {
-  const [state, action, pending] = useActionState(login, undefined);
+export default function SignupPage() {
+  const [state, action, pending] = useActionState(signup, undefined);
   // Initial render deve combaciare con l'HTML del server: parte dalla quote
   // deterministica del giorno, poi passa a una random dopo il mount.
   const [quote, setQuote] = useState(quoteOfTheDay);
@@ -26,12 +26,21 @@ export default function LoginPage() {
             Serate<span className="text-proiettore"> Film</span>
           </h1>
           <p className="mt-2 text-center font-mono text-[10px] uppercase tracking-[0.3em] text-fumo">
-            Ingresso riservato · posti limitati
+            Nuovo socio del club
           </p>
 
           <form action={action} className="mt-10 flex flex-col gap-4">
             <label className="flex flex-col gap-1.5">
-              <span className="eyebrow">Chi sei</span>
+              <span className="eyebrow">Come ti chiami</span>
+              <input
+                name="name"
+                required
+                className="rounded-sm border border-riga bg-notte px-3 py-2.5 text-schermo placeholder:text-fumo/50"
+                placeholder="nome"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="eyebrow">Scegli uno username</span>
               <input
                 name="username"
                 autoComplete="username"
@@ -46,8 +55,9 @@ export default function LoginPage() {
               <input
                 name="password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete="new-password"
                 required
+                minLength={6}
                 className="rounded-sm border border-riga bg-notte px-3 py-2.5 text-schermo"
               />
             </label>
@@ -61,14 +71,14 @@ export default function LoginPage() {
               disabled={pending}
               className="titlecard mt-3 rounded-sm bg-proiettore py-3 text-sm text-notte-fonda transition-colors hover:bg-proiettore-acceso disabled:opacity-60"
             >
-              {pending ? "Un attimo…" : "Entra in sala"}
+              {pending ? "Un attimo…" : "Registrati"}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-fumo">
-            Non hai un account?{" "}
-            <Link href="/signup" className="text-proiettore hover:text-proiettore-acceso">
-              Registrati
+            Hai già un account?{" "}
+            <Link href="/login" className="text-proiettore hover:text-proiettore-acceso">
+              Entra
             </Link>
           </p>
 
@@ -84,10 +94,6 @@ export default function LoginPage() {
             </p>
           </div>
         </div>
-
-        <p className="mt-6 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-schermo/60">
-          La sala è privata — se manca il tuo nome, chiedi a chi organizza
-        </p>
       </div>
     </main>
   );
