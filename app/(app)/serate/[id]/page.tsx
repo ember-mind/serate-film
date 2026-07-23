@@ -176,7 +176,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         <>
           <form action={submitVotes.bind(null, eventId)} className="flex flex-col gap-8">
             <section aria-labelledby="vota-date">
-              <p className="eyebrow mb-3" id="vota-date">
+              <p className="step-title mb-3" id="vota-date">
                 Atto I · Le date — spunta quando ci sei
               </p>
               {canManage && (
@@ -224,7 +224,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
             </section>
 
             <section aria-labelledby="vota-film">
-              <p className="eyebrow mb-3" id="vota-film">
+              <p className="step-title mb-3" id="vota-film">
                 Atto II · Il film — spunta tutti quelli che ti vanno bene
               </p>
               {canManage && (
@@ -303,7 +303,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
 
           {canManage && (
             <section className="ticket p-5" aria-labelledby="chiudi">
-              <p className="eyebrow mb-3" id="chiudi">
+              <p className="step-title mb-3" id="chiudi">
                 Regia · chiudi le votazioni
               </p>
               <form action={closeEvent.bind(null, eventId)} className="flex flex-col gap-3">
@@ -394,7 +394,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
 
           {canManage && (
             <section className="ticket p-5" aria-labelledby="vista">
-              <p className="eyebrow mb-3" id="vista">
+              <p className="step-title mb-3" id="vista">
                 Regia · dopo la visione
               </p>
               <form action={markWatched.bind(null, eventId)} className="flex flex-col gap-3">
@@ -471,7 +471,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
           </section>
 
           <section aria-labelledby="stelline">
-            <p className="eyebrow mb-3" id="stelline">
+            <p className="step-title mb-3" id="stelline">
               Le pagelle
             </p>
             {rats.length > 0 && (
@@ -523,7 +523,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
           </section>
 
           <section aria-labelledby="note">
-            <p className="eyebrow mb-3" id="note">
+            <p className="step-title mb-3" id="note">
               Note di sala
             </p>
             {canManage ? (

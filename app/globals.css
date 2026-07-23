@@ -62,6 +62,18 @@ body {
   color: var(--color-fumo);
 }
 
+/* Titolo di uno step della serata (Atto I, Atto II, …): più grande e leggibile dell'eyebrow */
+.step-title {
+  font-family: var(--font-mono);
+  font-size: 1.0625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-schermo);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-riga);
+}
+
 /* ---------- grana pellicola su tutta la sala ---------- */
 
 .grain {
