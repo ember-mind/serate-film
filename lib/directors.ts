@@ -1,4 +1,5 @@
 import profiles from "./director-profiles.json";
+import { generatedDirectorPortraitFor } from "./generatedDirectorPortraits";
 
 export type DirectorProfile = {
   name: string;
@@ -36,5 +37,13 @@ export function directorSlug(name: string): string {
 }
 
 export function directorProfile(name: string): DirectorProfile | null {
-  return directorProfiles[name] ?? null;
+  const profile = directorProfiles[name];
+  const generatedImage = generatedDirectorPortraitFor(name);
+  if (!profile && !generatedImage) return null;
+
+  return {
+    ...profile,
+    name: profile?.name ?? name,
+    imageUrl: generatedImage ?? profile?.imageUrl ?? null,
+  };
 }
