@@ -188,7 +188,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                   copyUrl={`/serate/${eventId}?focus=date`}
                 />
               )}
-              <ul className="mt-3 flex max-w-md flex-col gap-2">
+              <ul className="mx-auto mt-3 flex max-w-md flex-col gap-2">
                 {dates.map((d) => {
                   const votes = dVotes.filter((v) => v.eventDateId === d.id);
                   const mine = votes.some((v) => v.userId === user.id);
