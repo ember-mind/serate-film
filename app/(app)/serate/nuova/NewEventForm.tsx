@@ -115,6 +115,14 @@ export function NewEventForm({ movies, people }: { movies: PickMovie[]; people: 
             className="rounded-lg border border-riga bg-notte px-3 py-2.5 placeholder:text-fumo/50"
           />
         </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="eyebrow">Orario (facoltativo)</span>
+          <input
+            type="time"
+            name="startTime"
+            className="rounded-lg border border-riga bg-notte px-3 py-2.5 placeholder:text-fumo/50"
+          />
+        </label>
       </div>
 
       <fieldset className="ticket p-5">

@@ -79,6 +79,7 @@ export const events = sqliteTable("events", {
   chosenDate: text("chosen_date"),
   chosenMovieId: integer("chosen_movie_id").references(() => movies.id),
   location: text("location"),
+  startTime: text("start_time"),
   notes: text("notes"),
 });
 

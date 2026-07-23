@@ -142,6 +142,7 @@ export async function createEvent(_prev: { error?: string } | undefined, formDat
   const user = await requireUser();
   const title = String(formData.get("title") ?? "").trim() || null;
   const location = String(formData.get("location") ?? "").trim() || null;
+  const startTime = String(formData.get("startTime") ?? "").trim() || null;
   const dates = formData
     .getAll("dates")
     .map((d) => String(d).trim())
@@ -168,7 +169,7 @@ export async function createEvent(_prev: { error?: string } | undefined, formDat
 
   const [event] = await db
     .insert(events)
-    .values({ title, location, createdBy: user.id })
+    .values({ title, location, startTime, createdBy: user.id })
     .returning();
   await db.insert(eventDates).values(dates.map((date) => ({ eventId: event.id, date })));
   await db.insert(eventMovies).values(movieIds.map((movieId) => ({ eventId: event.id, movieId })));

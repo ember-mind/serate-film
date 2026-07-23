@@ -144,7 +144,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
   const title = chosenMovie ? chosenMovie.title : event.title || "Serata da decidere";
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-8">
+    <div className="mx-auto flex max-w-4xl flex-col gap-8">
       <FocusSection />
       <header>
         <p className="eyebrow">
@@ -160,6 +160,13 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         {restricted && (
           <p className="mt-2 font-mono text-xs uppercase tracking-[0.18em] text-fumo">
             Su invito · {invitees.map(nameOf).join(", ")}
+          </p>
+        )}
+        {event.status === "open" && (event.location || event.startTime) && (
+          <p className="mt-2 text-sm text-fumo">
+            {event.location && <span>📍 {event.location}</span>}
+            {event.location && event.startTime && " · "}
+            {event.startTime && <span>🕘 {event.startTime}</span>}
           </p>
         )}
       </header>
@@ -374,6 +381,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                   <p className="mt-1 text-sm text-schermo/80">con {chosenMovie.actors}</p>
                 )}
                 {event.location && <p className="mt-3 text-sm">📍 {event.location}</p>}
+                {event.startTime && <p className="mt-1 text-sm">🕘 {event.startTime}</p>}
               </div>
             </div>
             <div className="ticket-tear flex items-center justify-between gap-1 px-5 py-4 sm:w-40 sm:flex-col sm:justify-center sm:text-center">
