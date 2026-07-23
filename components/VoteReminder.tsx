@@ -18,22 +18,41 @@ export function VoteReminder({
   copyUrl: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [showAll, setShowAll] = useState(false);
 
-  async function copy() {
-    const url = `${window.location.origin}${copyUrl}`;
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = url;
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
+  function buildReminderText() {
+    const names = new Intl.ListFormat("it", {
+      style: "long",
+      type: "conjunction",
+    }).format(missingNames);
+    const absoluteUrl = `${window.location.origin}${copyUrl}`;
+    if (label.toLowerCase() === "date") {
+      return `🎬 ${names}: per la prossima serata non risulta ancora nessuna scelta sulle date.\n\nSegnate qui quando ci siete:\n${absoluteUrl}`;
     }
+    return `🎬 ${names}: per la prossima serata non risulta ancora nessuna preferenza sui film.\n\nVotate qui:\n${absoluteUrl}`;
+  }
+
+  async function copy() {
+    const text = buildReminderText();
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      } catch {
+        setStatus("error");
+        return;
+      }
+    }
+    setStatus("success");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -47,14 +66,20 @@ export function VoteReminder({
         <p className="text-fumo">
           {label} · {votedCount} su {totalCount} hanno registrato una scelta
         </p>
-        <button
-          type="button"
-          onClick={copy}
-          className="shrink-0 rounded-lg border border-riga px-4 py-1.5 text-sm text-fumo transition-colors hover:border-proiettore hover:text-schermo"
-        >
-          {copied ? "Copiato ✓" : `Copia link voto ${label.toLowerCase()}`}
-        </button>
+        {missingNames.length > 0 && (
+          <button
+            type="button"
+            onClick={copy}
+            className="shrink-0 rounded-lg border border-riga px-4 py-1.5 text-sm text-fumo transition-colors hover:border-proiettore hover:text-schermo"
+          >
+            {copied ? "Copiato ✓" : `Copia promemoria ${label.toLowerCase()}`}
+          </button>
+        )}
       </div>
+      <p aria-live="polite" className="sr-only">
+        {status === "success" && "Promemoria copiato negli appunti"}
+        {status === "error" && "Non siamo riusciti a copiare il promemoria"}
+      </p>
       {missingNames.length === 0 ? (
         <p className="text-xs text-fumo">Tutti hanno registrato una scelta.</p>
       ) : (
