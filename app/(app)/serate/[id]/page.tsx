@@ -29,7 +29,7 @@ import { ProposeDate } from "@/components/ProposeDate";
 import { ProposeMovie } from "@/components/ProposeMovie";
 import { Stars } from "@/components/Stars";
 import { FocusSection } from "@/components/FocusSection";
-import { CopyVoteLink } from "@/components/CopyVoteLink";
+import { VoteReminder } from "@/components/VoteReminder";
 import { formatDateFull, formatDateLong } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
@@ -101,6 +101,18 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         })
       : [];
 
+  // promemoria organizzatore: chi non ha ancora registrato una scelta
+  const missingDateNames = canManage
+    ? invitedPeople
+        .filter((p) => !dVotes.some((v) => v.userId === p.id))
+        .map((p) => p.name)
+    : [];
+  const missingMovieNames = canManage
+    ? invitedPeople
+        .filter((p) => !mVotes.some((v) => v.userId === p.id))
+        .map((p) => p.name)
+    : [];
+
   // catalogo proponibile: tutto ciò che non è già in rosa
   const proposable =
     event.status === "open"
@@ -160,7 +172,16 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
               <p className="eyebrow mb-3" id="vota-date">
                 Atto I · Le date — spunta quando ci sei
               </p>
-              <ul className="flex flex-col gap-2">
+              {canManage && (
+                <VoteReminder
+                  label="Date"
+                  votedCount={invitedPeople.length - missingDateNames.length}
+                  totalCount={invitedPeople.length}
+                  missingNames={missingDateNames}
+                  copyUrl={`/serate/${eventId}?focus=date`}
+                />
+              )}
+              <ul className="mt-3 flex flex-col gap-2">
                 {dates.map((d) => {
                   const votes = dVotes.filter((v) => v.eventDateId === d.id);
                   const mine = votes.some((v) => v.userId === user.id);
@@ -196,13 +217,19 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
             </section>
 
             <section aria-labelledby="vota-film">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="eyebrow" id="vota-film">
-                  Atto II · Il film — spunta tutti quelli che ti vanno bene
-                </p>
-                {canManage && <CopyVoteLink eventId={eventId} />}
-              </div>
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <p className="eyebrow mb-3" id="vota-film">
+                Atto II · Il film — spunta tutti quelli che ti vanno bene
+              </p>
+              {canManage && (
+                <VoteReminder
+                  label="Film"
+                  votedCount={invitedPeople.length - missingMovieNames.length}
+                  totalCount={invitedPeople.length}
+                  missingNames={missingMovieNames}
+                  copyUrl={`/serate/${eventId}?focus=film`}
+                />
+              )}
+              <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {eMovies.map((em) => {
                   const m = ms.find((x) => x.id === em.movieId);
                   if (!m) return null;
