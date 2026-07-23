@@ -7,6 +7,7 @@ const items = [
   { href: "/", label: "Stasera" },
   { href: "/film", label: "Cineteca" },
   { href: "/attori", label: "Attori" },
+  { href: "/registi", label: "Registi" },
   { href: "/serate", label: "Proiezioni" },
   { href: "/storico", label: "Registro" },
 ];

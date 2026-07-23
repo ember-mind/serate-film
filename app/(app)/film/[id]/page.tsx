@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { addToWatchlist, removeFromWatchlist } from "@/lib/actions";
 import { Poster } from "@/components/Poster";
 import { actorSlug, parseActors } from "@/lib/actors";
+import { directorSlug, parseDirectors } from "@/lib/directors";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,17 @@ export default async function FilmPage({ params }: { params: Promise<{ id: strin
             {movie.director && (
               <div>
                 <span className="text-fumo">regia di </span>
-                {movie.director}
+                {parseDirectors(movie.director).map((name, index, names) => (
+                  <span key={name}>
+                    <Link
+                      href={`/registi/${directorSlug(name)}`}
+                      className="underline decoration-riga underline-offset-4 transition-colors hover:text-proiettore hover:decoration-proiettore"
+                    >
+                      {name}
+                    </Link>
+                    {index < names.length - 1 ? ", " : ""}
+                  </span>
+                ))}
               </div>
             )}
             {movie.actors && (
