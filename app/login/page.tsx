@@ -1,9 +1,17 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { Suspense, useActionState, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { login } from "@/lib/actions";
 import { quoteOfTheDay, randomQuote } from "@/lib/quotes";
+
+// useSearchParams richiede una suspense boundary per non far bailoutare
+// tutta la pagina dal prerendering statico.
+function NextField() {
+  const next = useSearchParams().get("next") ?? "";
+  return <input type="hidden" name="next" value={next} />;
+}
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
@@ -31,6 +39,9 @@ export default function LoginPage() {
           </p>
 
           <form action={action} className="mt-10 flex flex-col gap-4">
+            <Suspense fallback={null}>
+              <NextField />
+            </Suspense>
             <div className="flex flex-col gap-1.5">
               <label htmlFor="username" className="eyebrow">
                 Username

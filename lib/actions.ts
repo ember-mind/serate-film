@@ -22,6 +22,7 @@ import {
 import { createSession, destroySession } from "@/lib/session";
 import { requireUser, requireAdmin } from "@/lib/auth";
 import { canSee, inviteesByEvent } from "@/lib/invites";
+import { sanitizeNext } from "@/lib/nav";
 
 // ---------- auth ----------
 
@@ -33,7 +34,7 @@ export async function login(_prev: { error?: string } | undefined, formData: For
     return { error: "Nome o password sbagliati. Riprova." };
   }
   await createSession(user.id);
-  redirect("/");
+  redirect(sanitizeNext(String(formData.get("next") ?? "/")));
 }
 
 export async function signup(_prev: { error?: string } | undefined, formData: FormData) {

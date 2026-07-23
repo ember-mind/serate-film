@@ -11,9 +11,14 @@ export function ProposeMovie({ eventId, movies }: { eventId: number; movies: Pic
   const [state, action, pending] = useActionState(proposeEventMovie.bind(null, eventId), undefined);
   const [query, setQuery] = useState("");
 
-  const q = query.trim().toLowerCase();
+  const normalize = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase();
+  const q = normalize(query.trim());
   const matches = q
-    ? movies.filter((m) => m.title.toLowerCase().includes(q)).slice(0, 8)
+    ? movies.filter((m) => normalize(m.title).includes(q)).slice(0, 8)
     : [];
 
   return (

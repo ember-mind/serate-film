@@ -28,6 +28,8 @@ import { Poster } from "@/components/Poster";
 import { ProposeDate } from "@/components/ProposeDate";
 import { ProposeMovie } from "@/components/ProposeMovie";
 import { Stars } from "@/components/Stars";
+import { FocusSection } from "@/components/FocusSection";
+import { CopyVoteLink } from "@/components/CopyVoteLink";
 import { formatDateFull, formatDateLong } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
@@ -131,6 +133,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-8">
+      <FocusSection />
       <header>
         <p className="eyebrow">
           {event.status === "open" && "Votazioni aperte"}
@@ -193,9 +196,12 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
             </section>
 
             <section aria-labelledby="vota-film">
-              <p className="eyebrow mb-3" id="vota-film">
-                Atto II · Il film — spunta tutti quelli che ti vanno bene
-              </p>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="eyebrow" id="vota-film">
+                  Atto II · Il film — spunta tutti quelli che ti vanno bene
+                </p>
+                {canManage && <CopyVoteLink eventId={eventId} />}
+              </div>
               <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {eMovies.map((em) => {
                   const m = ms.find((x) => x.id === em.movieId);
