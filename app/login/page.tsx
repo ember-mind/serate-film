@@ -120,9 +120,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="mt-6 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-schermo/60">
-          La sala è privata — se manca il tuo nome, chiedi a chi organizza
-        </p>
       </div>
     </main>
   );
