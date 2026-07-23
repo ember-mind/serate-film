@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { addToWatchlist, removeFromWatchlist } from "@/lib/actions";
 import { Poster } from "@/components/Poster";
@@ -86,22 +86,48 @@ function Card({ m }: { m: CatalogMovie }) {
 
 export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
   const [query, setQuery] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState("");
   const q = query.trim().toLowerCase();
 
-  // la ricerca parte dal terzo carattere; prima si sfoglia la cineteca per decennio
-  const results =
-    q.length < 3
-      ? movies
-      : movies.filter(
-          (m) =>
-            m.title.toLowerCase().includes(q) ||
-            (m.director ?? "").toLowerCase().includes(q) ||
-            (m.actors ?? "").toLowerCase().includes(q)
-        );
+  // elenco categorie distinte, derivato dai film già in props (nessuna query)
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of movies) {
+      if (!m.genres) continue;
+      for (const g of m.genres.split(",")) {
+        const trimmed = g.trim();
+        if (trimmed) set.add(trimmed);
+      }
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, "it"));
+  }, [movies]);
 
-  const searching = q.length >= 3;
+  const genreActive = selectedGenre !== "";
+  const searching = q.length >= 3; // la ricerca parte dal terzo carattere; prima si sfoglia la cineteca per decennio
+
+  function matchesGenre(m: CatalogMovie) {
+    if (!genreActive) return true;
+    if (!m.genres) return false;
+    return m.genres
+      .split(",")
+      .map((g) => g.trim().toLowerCase())
+      .includes(selectedGenre.toLowerCase());
+  }
+
+  const results = movies.filter((m) => {
+    if (!matchesGenre(m)) return false;
+    if (!searching) return true;
+    return (
+      m.title.toLowerCase().includes(q) ||
+      (m.director ?? "").toLowerCase().includes(q) ||
+      (m.actors ?? "").toLowerCase().includes(q)
+    );
+  });
+
+  // la vista per decennio resta solo quando non c'è né ricerca né categoria attiva
+  const flat = searching || genreActive;
   const byDecade = new Map<string, CatalogMovie[]>();
-  if (!searching) {
+  if (!flat) {
     for (const m of results) {
       const d = decadeOf(m.year);
       if (!byDecade.has(d)) byDecade.set(d, []);
@@ -109,26 +135,53 @@ export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
     }
   }
 
+  const countLabel = !flat
+    ? `${movies.length} bobine in archivio`
+    : searching && genreActive
+      ? `${results.length} bobine per “${query.trim()}” in ${selectedGenre}`
+      : genreActive
+        ? `${results.length} bobine in ${selectedGenre}`
+        : `${results.length} bobine per “${query.trim()}”`;
+
   return (
     <div>
-      <input
-        type="search"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Cerca per titolo, regista o attore…"
-        aria-label="Cerca in cineteca"
-        className="mb-4 w-full rounded-sm border border-riga bg-sipario px-4 py-3 text-schermo placeholder:text-fumo/60"
-      />
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Cerca per titolo, regista o attore…"
+          aria-label="Cerca in cineteca"
+          className="w-full rounded-sm border border-riga bg-sipario px-4 py-3 text-schermo placeholder:text-fumo/60 sm:flex-1"
+        />
+        <label className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-fumo">
+          Categoria
+          <select
+            value={selectedGenre}
+            onChange={(e) => setSelectedGenre(e.target.value)}
+            className="rounded-sm border border-riga bg-sipario px-3 py-3 text-schermo sm:w-56"
+          >
+            <option value="">Tutte le categorie</option>
+            {categories.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       <p className="eyebrow mb-6" aria-live="polite">
-        {searching ? `${results.length} bobine per “${query.trim()}”` : `${movies.length} bobine in archivio`}
+        {countLabel}
       </p>
 
       {results.length === 0 ? (
         <p className="text-sm text-fumo">
-          Niente in cineteca per questa ricerca. Aggiungilo tu qui sopra.
+          {genreActive
+            ? "Nessun film in questa categoria."
+            : "Niente in cineteca per questa ricerca. Aggiungilo tu qui sopra."}
         </p>
-      ) : searching ? (
+      ) : flat ? (
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {results.map((m) => (
             <Card key={m.id} m={m} />
