@@ -25,6 +25,7 @@ export function NewEventForm({ movies, people }: { movies: PickMovie[]; people: 
   const [dateCount, setDateCount] = useState(2);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [query, setQuery] = useState("");
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
 
   const toggle = (id: number) =>
     setSelected((prev) => {
@@ -151,28 +152,56 @@ export function NewEventForm({ movies, people }: { movies: PickMovie[]; people: 
       </fieldset>
 
       <fieldset className="ticket p-5">
-        <legend className="eyebrow float-left mb-3">Gli invitati</legend>
-        <ul className="clear-both grid grid-cols-2 gap-2">
-          {people.map((p) => (
-            <li key={p.id}>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-riga bg-notte px-3 py-2 text-sm has-checked:border-proiettore">
-                <input
-                  type="checkbox"
-                  name="invitees"
-                  value={p.id}
-                  defaultChecked
-                  className="accent-[#e8b84b]"
-                />
-                {p.name}
-              </label>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-xs text-fumo">
-          Tutti spuntati = serata aperta al club. Togli qualcuno e la serata resta visibile solo
-          agli invitati.
-        </p>
+        <legend className="eyebrow float-left mb-3">Chi può partecipare?</legend>
+        <div className="clear-both flex flex-col gap-2">
+          <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-riga bg-notte px-3 py-2 text-sm has-checked:border-proiettore">
+            <input
+              type="radio"
+              name="visibility"
+              value="public"
+              checked={visibility === "public"}
+              onChange={() => setVisibility("public")}
+              className="mt-1 accent-[#e8b84b]"
+            />
+            <span>
+              <span className="block">Tutto il club</span>
+              <span className="block text-xs text-fumo">Chiunque nel club può vedere e votare.</span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-riga bg-notte px-3 py-2 text-sm has-checked:border-proiettore">
+            <input
+              type="radio"
+              name="visibility"
+              value="private"
+              checked={visibility === "private"}
+              onChange={() => setVisibility("private")}
+              className="accent-[#e8b84b]"
+            />
+            Solo le persone che scelgo
+          </label>
+        </div>
       </fieldset>
+
+      {visibility === "private" && (
+        <fieldset className="ticket p-5">
+          <legend className="eyebrow float-left mb-3">Gli invitati</legend>
+          <ul className="clear-both grid grid-cols-2 gap-2">
+            {people.map((p) => (
+              <li key={p.id}>
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-riga bg-notte px-3 py-2 text-sm has-checked:border-proiettore">
+                  <input
+                    type="checkbox"
+                    name="invitees"
+                    value={p.id}
+                    className="accent-[#e8b84b]"
+                  />
+                  {p.name}
+                </label>
+              </li>
+            ))}
+          </ul>
+        </fieldset>
+      )}
 
       <fieldset className="ticket p-5">
         <legend className="eyebrow float-left mb-3">

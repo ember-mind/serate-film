@@ -154,7 +154,7 @@ export async function createEvent(_prev: { error?: string } | undefined, formDat
   if (movieIds.length < 1) return { error: "Scegli almeno un film dalla watchlist." };
   if (movieIds.length > 8) return { error: "Massimo 8 film in rosa." };
 
-  // inviti: tutti selezionati = serata aperta al club (nessuna riga)
+  const visibility = String(formData.get("visibility") ?? "public");
   const allUsers = await db.query.users.findMany();
   const inviteeIds = [
     ...new Set(
@@ -164,8 +164,7 @@ export async function createEvent(_prev: { error?: string } | undefined, formDat
         .filter((n) => allUsers.some((u) => u.id === n))
     ),
   ];
-  if (inviteeIds.length === 0) return { error: "Invita almeno una persona." };
-  const restricted = inviteeIds.length < allUsers.length;
+  const restricted = visibility === "private";
 
   const [event] = await db
     .insert(events)
