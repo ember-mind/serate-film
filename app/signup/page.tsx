@@ -7,6 +7,7 @@ import { quoteOfTheDay, randomQuote } from "@/lib/quotes";
 
 export default function SignupPage() {
   const [state, action, pending] = useActionState(signup, undefined);
+  const [showPassword, setShowPassword] = useState(false);
   // Initial render deve combaciare con l'HTML del server: parte dalla quote
   // deterministica del giorno, poi passa a una random dopo il mount.
   const [quote, setQuote] = useState(quoteOfTheDay);
@@ -30,39 +31,64 @@ export default function SignupPage() {
           </p>
 
           <form action={action} className="mt-10 flex flex-col gap-4">
-            <label className="flex flex-col gap-1.5">
-              <span className="eyebrow">Come ti chiami</span>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="name" className="eyebrow">
+                Nome
+              </label>
               <input
+                id="name"
                 name="name"
                 required
+                aria-invalid={state?.error ? true : undefined}
+                aria-describedby={state?.error ? "signup-error" : undefined}
                 className="rounded-sm border border-riga bg-notte px-3 py-2.5 text-schermo placeholder:text-fumo/50"
-                placeholder="nome"
+                placeholder="Come ti chiami"
               />
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="eyebrow">Scegli uno username</span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="username" className="eyebrow">
+                Username
+              </label>
               <input
+                id="username"
                 name="username"
                 autoComplete="username"
                 autoCapitalize="none"
                 required
+                aria-invalid={state?.error ? true : undefined}
+                aria-describedby={state?.error ? "signup-error" : undefined}
                 className="rounded-sm border border-riga bg-notte px-3 py-2.5 text-schermo placeholder:text-fumo/50"
-                placeholder="username"
+                placeholder="Scegli uno username"
               />
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="eyebrow">Password</span>
-              <input
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={6}
-                className="rounded-sm border border-riga bg-notte px-3 py-2.5 text-schermo"
-              />
-            </label>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="password" className="eyebrow">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  minLength={6}
+                  aria-invalid={state?.error ? true : undefined}
+                  aria-describedby={state?.error ? "signup-error" : undefined}
+                  className="w-full rounded-sm border border-riga bg-notte px-3 py-2.5 pr-16 text-schermo"
+                />
+                <button
+                  type="button"
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 px-3 font-mono text-[10px] uppercase tracking-[0.2em] text-fumo hover:text-proiettore"
+                >
+                  {showPassword ? "Nascondi" : "Mostra"}
+                </button>
+              </div>
+            </div>
             {state?.error && (
-              <p role="alert" className="text-sm text-velluto-acceso">
+              <p id="signup-error" role="alert" className="text-sm text-velluto-acceso">
                 {state.error}
               </p>
             )}
@@ -71,7 +97,7 @@ export default function SignupPage() {
               disabled={pending}
               className="titlecard mt-3 rounded-sm bg-proiettore py-3 text-sm text-notte-fonda transition-colors hover:bg-proiettore-acceso disabled:opacity-60"
             >
-              {pending ? "Un attimo…" : "Registrati"}
+              {pending ? "Registrazione…" : "Registrati"}
             </button>
           </form>
 

@@ -21,6 +21,10 @@ const splineMono = Spline_Sans_Mono({
 export const metadata: Metadata = {
   title: "Serate Film",
   description: "Il cinema club del gruppo: cartellone, votazioni e registro di sala.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({
