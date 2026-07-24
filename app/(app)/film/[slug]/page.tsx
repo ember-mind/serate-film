@@ -9,19 +9,20 @@ import { Poster } from "@/components/Poster";
 import { actorSlug, parseActors } from "@/lib/actors";
 import { getBeforeWatchingNotes } from "@/lib/before-watching";
 import { directorSlug, parseDirectors } from "@/lib/directors";
+import { filmSlug } from "@/lib/films";
 
 export const dynamic = "force-dynamic";
 
-export default async function FilmPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function FilmPage({ params }: { params: Promise<{ slug: string }> }) {
   await requireUser();
-  const { id } = await params;
-  const movieId = Number(id);
-  if (!Number.isInteger(movieId)) notFound();
+  const { slug } = await params;
 
-  const movie = await db.query.movies.findFirst({ where: eq(movies.id, movieId) });
+  const movie = /^\d+$/.test(slug)
+    ? await db.query.movies.findFirst({ where: eq(movies.id, Number(slug)) })
+    : (await db.query.movies.findMany()).find((m) => filmSlug(m) === slug);
   if (!movie) notFound();
 
-  const wl = await db.query.watchlist.findFirst({ where: eq(watchlist.movieId, movieId) });
+  const wl = await db.query.watchlist.findFirst({ where: eq(watchlist.movieId, movie.id) });
   const state = !wl || wl.status === "removed" ? "none" : wl.status;
   const beforeWatchingNotes = getBeforeWatchingNotes(movie);
 

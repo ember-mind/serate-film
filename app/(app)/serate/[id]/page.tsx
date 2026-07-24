@@ -34,6 +34,7 @@ import { Stars } from "@/components/Stars";
 import { FocusSection } from "@/components/FocusSection";
 import { VoteReminder } from "@/components/VoteReminder";
 import { formatDateFull, formatDateLong } from "@/lib/dates";
+import { filmSlug } from "@/lib/films";
 
 export const dynamic = "force-dynamic";
 
@@ -187,7 +188,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         </p>
         <h1 className="titlecard mt-1 text-2xl text-schermo sm:text-3xl">
           {chosenMovie ? (
-            <Link href={`/film/${chosenMovie.id}`} className="transition-colors hover:text-proiettore">
+            <Link href={`/film/${filmSlug(chosenMovie)}`} className="transition-colors hover:text-proiettore">
               {title}
             </Link>
           ) : (
@@ -522,7 +523,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         <>
           <section className="ticket ticket-glow flex flex-col overflow-hidden sm:flex-row">
             <div className="flex flex-1 gap-4 p-5">
-              <Link href={`/film/${chosenMovie.id}`} className="shrink-0">
+              <Link href={`/film/${filmSlug(chosenMovie)}`} className="shrink-0">
                 <Poster
                   title={chosenMovie.title}
                   year={chosenMovie.year}
@@ -608,7 +609,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
       {event.status === "done" && chosenMovie && (
         <>
           <section className="ticket flex gap-4 p-5">
-            <Link href={`/film/${chosenMovie.id}`} className="shrink-0">
+            <Link href={`/film/${filmSlug(chosenMovie)}`} className="shrink-0">
               <Poster
                 title={chosenMovie.title}
                 year={chosenMovie.year}

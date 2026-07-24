@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { movies } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { actorProfile, actorSlug, parseActors } from "@/lib/actors";
+import { filmSlug } from "@/lib/films";
 
 export const dynamic = "force-dynamic";
 
@@ -130,7 +131,7 @@ export default async function ActorPage({ params }: { params: Promise<{ slug: st
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {filmography.map((movie) => (
             <li key={movie.id} className="ticket overflow-hidden">
-              <Link href={`/film/${movie.id}`} className="group block h-full">
+              <Link href={`/film/${filmSlug(movie)}`} className="group block h-full">
                 <Poster
                   title={movie.title}
                   year={movie.year}

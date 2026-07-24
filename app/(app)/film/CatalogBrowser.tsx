@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { addToWatchlist, removeFromWatchlist } from "@/lib/actions";
 import { Poster } from "@/components/Poster";
+import { filmSlug } from "@/lib/films";
 
 export type CatalogMovie = {
   id: number;
@@ -33,7 +34,7 @@ function decadeOf(year: number | null) {
 function Card({ m }: { m: CatalogMovie }) {
   return (
     <li className="ticket flex flex-col overflow-hidden">
-      <Link href={`/film/${m.id}`} className="group flex flex-col">
+      <Link href={`/film/${filmSlug(m)}`} className="group flex flex-col">
         <Poster
           title={m.title}
           year={m.year}
