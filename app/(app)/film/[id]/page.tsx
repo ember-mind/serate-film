@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { addToWatchlist, removeFromWatchlist } from "@/lib/actions";
 import { Poster } from "@/components/Poster";
 import { actorSlug, parseActors } from "@/lib/actors";
+import { getBeforeWatchingNotes } from "@/lib/before-watching";
 import { directorSlug, parseDirectors } from "@/lib/directors";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export default async function FilmPage({ params }: { params: Promise<{ id: strin
 
   const wl = await db.query.watchlist.findFirst({ where: eq(watchlist.movieId, movieId) });
   const state = !wl || wl.status === "removed" ? "none" : wl.status;
+  const beforeWatchingNotes = getBeforeWatchingNotes(movie);
 
   return (
     <div>
@@ -113,6 +115,30 @@ export default async function FilmPage({ params }: { params: Promise<{ id: strin
                 </a>
               )}
             </div>
+          )}
+
+          {beforeWatchingNotes.length > 0 && (
+            <section
+              aria-labelledby="before-watching-title"
+              className="mt-6 rounded-sm border border-riga bg-sipario-chiaro/30 p-4 sm:p-5"
+            >
+              <h2 id="before-watching-title" className="eyebrow mb-4">
+                Cosa sapere prima di vederlo
+              </h2>
+              <dl className="space-y-3">
+                {beforeWatchingNotes.map((note) => (
+                  <div key={note.label} className="grid gap-1 sm:grid-cols-[88px_1fr] sm:gap-3">
+                    <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-proiettore">
+                      {note.label}
+                    </dt>
+                    <dd className="text-sm leading-relaxed text-schermo/85">{note.text}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-4 border-t border-riga/70 pt-3 font-mono text-[9px] uppercase tracking-[0.13em] text-fumo/60">
+                Indicazioni orientative e senza spoiler
+              </p>
+            </section>
           )}
 
           <div className="mt-7 max-w-xs">
