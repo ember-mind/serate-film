@@ -10,6 +10,7 @@ import {
   events,
   movies,
   movieVotes,
+  runoffVotes,
   ratings,
   users,
 } from "@/db/schema";
@@ -21,6 +22,8 @@ import {
   rateEvent,
   reopenEvent,
   saveEventNotes,
+  startRunoff,
+  submitRunoffVote,
   submitVotes,
 } from "@/lib/actions";
 import { canSee, inviteesByEvent } from "@/lib/invites";
@@ -100,6 +103,15 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
           ),
         })
       : [];
+  const rVotes =
+    eMovies.length > 0 && event.status === "runoff"
+      ? await db.query.runoffVotes.findMany({
+          where: inArray(
+            runoffVotes.eventMovieId,
+            eMovies.map((em) => em.id)
+          ),
+        })
+      : [];
 
   // promemoria organizzatore: chi non ha ancora registrato una scelta
   const missingDateNames = canManage
@@ -141,6 +153,23 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
       mVotes.filter((v) => v.eventMovieId === a.id).length
   )[0];
 
+  // pareggio in Atto II: due o più film appaiati in cima, almeno un timbro
+  const maxMovieVotes =
+    eMovies.length > 0
+      ? Math.max(...eMovies.map((em) => mVotes.filter((v) => v.eventMovieId === em.id).length))
+      : 0;
+  const tiedTop =
+    maxMovieVotes > 0
+      ? eMovies.filter((em) => mVotes.filter((v) => v.eventMovieId === em.id).length === maxMovieVotes)
+      : [];
+
+  const runoffMovies = eMovies.filter((em) => em.inRunoff);
+  const runoffLeader = [...runoffMovies].sort(
+    (a, b) =>
+      rVotes.filter((v) => v.eventMovieId === b.id).length -
+      rVotes.filter((v) => v.eventMovieId === a.id).length
+  )[0];
+
   const title = chosenMovie ? chosenMovie.title : event.title || "Serata da decidere";
 
   return (
@@ -149,6 +178,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
       <header>
         <p className="eyebrow">
           {event.status === "open" && "Votazioni aperte"}
+          {event.status === "runoff" && "Ballottaggio"}
           {event.status === "scheduled" && "In programma"}
           {event.status === "done" && "Vista"}
           {event.status === "cancelled" && "Annullata"}
@@ -306,6 +336,19 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
               <p className="step-title mb-3" id="chiudi">
                 Regia · chiudi le votazioni
               </p>
+              {tiedTop.length >= 2 && (
+                <form
+                  action={async () => {
+                    "use server";
+                    await startRunoff(eventId);
+                  }}
+                  className="mb-3"
+                >
+                  <button className="w-full rounded-lg border border-proiettore py-2.5 font-semibold text-proiettore transition-colors hover:bg-proiettore/10">
+                    Vai al ballottaggio · {tiedTop.length} film pari
+                  </button>
+                </form>
+              )}
               <form action={closeEvent.bind(null, eventId)} className="flex flex-col gap-3">
                 <label className="flex flex-col gap-1.5">
                   <span className="text-sm text-fumo">Data scelta</span>
@@ -345,6 +388,121 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
               </form>
               <form action={cancelEvent.bind(null, eventId)} className="mt-3 text-center">
                 <button className="text-xs text-fumo hover:text-velluto">Annulla la serata</button>
+              </form>
+            </section>
+          )}
+        </>
+      )}
+
+      {/* ---------- BALLOTTAGGIO ---------- */}
+      {event.status === "runoff" && (
+        <>
+          <form action={submitRunoffVote.bind(null, eventId)} className="flex flex-col gap-8">
+            <section aria-labelledby="ballottaggio">
+              <p className="step-title mb-3" id="ballottaggio">
+                Ballottaggio · pareggio in Atto II — scegli un solo film
+              </p>
+              <ul
+                className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3"
+                role="radiogroup"
+                aria-labelledby="ballottaggio"
+              >
+                {runoffMovies.map((em) => {
+                  const m = ms.find((x) => x.id === em.movieId);
+                  if (!m) return null;
+                  const votes = rVotes.filter((v) => v.eventMovieId === em.id);
+                  const mine = votes.some((v) => v.userId === user.id);
+                  return (
+                    <li key={em.id}>
+                      <label className="stamp block w-full cursor-pointer overflow-hidden rounded-lg border-2 border-riga text-left opacity-85 hover:opacity-100 has-checked:border-proiettore has-checked:opacity-100">
+                        <input
+                          type="radio"
+                          name="eventMovieId"
+                          value={em.id}
+                          defaultChecked={mine}
+                          className="sr-only"
+                        />
+                        <Poster
+                          title={m.title}
+                          year={m.year}
+                          genres={m.genres}
+                          posterUrl={m.posterUrl}
+                          posterCredit={m.posterCredit}
+                          className="aspect-2/3 w-full"
+                        />
+                        <span className="block bg-sipario p-2">
+                          <span className="block truncate text-sm font-semibold">{m.title}</span>
+                          <span className="mt-0.5 block font-mono text-xs text-fumo">
+                            {votes.length} {votes.length === 1 ? "voto" : "voti"}
+                            {votes.length > 0 && ` · ${votes.map((v) => nameOf(v.userId)).join(", ")}`}
+                          </span>
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+
+            <div className="ticket ticket-glow flex flex-col gap-2 p-4">
+              <button
+                type="submit"
+                className="titlecard rounded-lg bg-proiettore py-3 text-base text-notte-fonda transition-colors hover:bg-proiettore-acceso"
+              >
+                Vota!
+              </button>
+              <p className="text-center text-xs text-fumo">
+                {rVotes.some((v) => v.userId === user.id)
+                  ? "Hai già votato: la nuova scelta sostituisce la vecchia."
+                  : "La scelta si può correggere finché il ballottaggio è aperto."}
+              </p>
+            </div>
+          </form>
+
+          {canManage && (
+            <section className="ticket p-5" aria-labelledby="chiudi-ballottaggio">
+              <p className="step-title mb-3" id="chiudi-ballottaggio">
+                Regia · chiudi il ballottaggio
+              </p>
+              <form action={closeEvent.bind(null, eventId)} className="flex flex-col gap-3">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-sm text-fumo">Data scelta</span>
+                  <select
+                    name="chosenDate"
+                    defaultValue={bestDate?.date}
+                    className="rounded-lg border border-riga bg-notte px-3 py-2.5 font-mono text-sm"
+                  >
+                    {dates.map((d) => (
+                      <option key={d.id} value={d.date}>
+                        {formatDateFull(d.date)} — {dVotes.filter((v) => v.eventDateId === d.id).length}{" "}
+                        disponibili
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-sm text-fumo">Film scelto</span>
+                  <select
+                    name="chosenMovieId"
+                    defaultValue={runoffLeader?.movieId}
+                    className="rounded-lg border border-riga bg-notte px-3 py-2.5 text-sm"
+                  >
+                    {runoffMovies.map((em) => {
+                      const m = ms.find((x) => x.id === em.movieId);
+                      return (
+                        <option key={em.id} value={em.movieId}>
+                          {m?.title} — {rVotes.filter((v) => v.eventMovieId === em.id).length} voti
+                        </option>
+                      );
+                    })}
+                  </select>
+                </label>
+                <button className="rounded-lg bg-proiettore py-2.5 font-semibold text-notte-fonda transition-colors hover:bg-proiettore-acceso">
+                  Conferma data e film
+                </button>
+              </form>
+              <form action={reopenEvent.bind(null, eventId)} className="mt-3 text-center">
+                <button className="text-xs text-fumo hover:text-velluto">Annulla ballottaggio</button>
               </form>
             </section>
           )}

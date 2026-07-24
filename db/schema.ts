@@ -63,11 +63,11 @@ export const suggestions = sqliteTable("suggestions", {
   movieId: integer("movie_id").references(() => movies.id),
 });
 
-// Una serata: open (si vota) → scheduled (data+film fissati) → done (vista) | cancelled
+// Una serata: open (si vota) → runoff (pareggio, si ballotta) → scheduled (data+film fissati) → done (vista) | cancelled
 export const events = sqliteTable("events", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title"),
-  status: text("status", { enum: ["open", "scheduled", "done", "cancelled"] })
+  status: text("status", { enum: ["open", "runoff", "scheduled", "done", "cancelled"] })
     .notNull()
     .default("open"),
   createdBy: integer("created_by")
@@ -115,6 +115,7 @@ export const eventMovies = sqliteTable("event_movies", {
     .notNull()
     .references(() => movies.id),
   addedBy: integer("added_by").references(() => users.id), // null = rosa iniziale del creatore
+  inRunoff: integer("in_runoff", { mode: "boolean" }).notNull().default(false),
 });
 
 // Sì/No sulla data: la riga esiste = "ci sono"
@@ -134,6 +135,20 @@ export const dateVotes = sqliteTable(
 // Approval voting: la riga esiste = "questo film mi va bene"
 export const movieVotes = sqliteTable(
   "movie_votes",
+  {
+    eventMovieId: integer("event_movie_id")
+      .notNull()
+      .references(() => eventMovies.id),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+  },
+  (t) => [primaryKey({ columns: [t.eventMovieId, t.userId] })]
+);
+
+// Ballottaggio: scelta singola tra i film in pareggio. La riga esiste = "questa la mia scelta"
+export const runoffVotes = sqliteTable(
+  "runoff_votes",
   {
     eventMovieId: integer("event_movie_id")
       .notNull()

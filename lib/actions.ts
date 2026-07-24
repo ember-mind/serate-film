@@ -15,6 +15,7 @@ import {
   eventMovies,
   dateVotes,
   movieVotes,
+  runoffVotes,
   attendance,
   ratings,
   suggestions,
@@ -284,6 +285,68 @@ export async function submitVotes(eventId: number, formData: FormData) {
   revalidatePath(`/serate/${eventId}`);
 }
 
+// Avvia il ballottaggio: pareggio tra i film più approvati nel primo turno.
+export async function startRunoff(eventId: number) {
+  const { event } = await canManage(eventId);
+  if (event.status !== "open") return { error: "Le votazioni non sono aperte." };
+
+  const ems = await db.query.eventMovies.findMany({ where: eq(eventMovies.eventId, eventId) });
+  if (ems.length === 0) return { error: "Non c'è un pareggio da risolvere." };
+  const votes = await db.query.movieVotes.findMany({
+    where: inArray(
+      movieVotes.eventMovieId,
+      ems.map((em) => em.id)
+    ),
+  });
+  const counts = new Map<number, number>(ems.map((em) => [em.id, 0]));
+  for (const v of votes) counts.set(v.eventMovieId, (counts.get(v.eventMovieId) ?? 0) + 1);
+  const max = Math.max(...counts.values());
+  const tied = ems.filter((em) => counts.get(em.id) === max && max > 0);
+  if (tied.length < 2) return { error: "Non c'è un pareggio da risolvere." };
+
+  await db.delete(runoffVotes).where(
+    inArray(
+      runoffVotes.eventMovieId,
+      ems.map((em) => em.id)
+    )
+  );
+  const tiedIds = tied.map((em) => em.id);
+  const restIds = ems.filter((em) => !tiedIds.includes(em.id)).map((em) => em.id);
+  await db.update(eventMovies).set({ inRunoff: true }).where(inArray(eventMovies.id, tiedIds));
+  if (restIds.length > 0) {
+    await db.update(eventMovies).set({ inRunoff: false }).where(inArray(eventMovies.id, restIds));
+  }
+  await db.update(events).set({ status: "runoff" }).where(eq(events.id, eventId));
+  revalidatePath(`/serate/${eventId}`);
+  return { ok: true };
+}
+
+// Scheda del ballottaggio: scelta singola tra i soli film in pareggio.
+export async function submitRunoffVote(eventId: number, formData: FormData) {
+  const user = await requireUser();
+  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
+  if (!event || event.status !== "runoff") return;
+  const invitees = (await inviteesByEvent([eventId])).get(eventId);
+  if (!canSee(event, invitees, user)) return;
+
+  const eventMovieId = Number(formData.get("eventMovieId"));
+  const ems = await db.query.eventMovies.findMany({ where: eq(eventMovies.eventId, eventId) });
+  const chosen = ems.find((em) => em.id === eventMovieId && em.inRunoff);
+  if (!chosen) return;
+
+  await db.delete(runoffVotes).where(
+    and(
+      inArray(
+        runoffVotes.eventMovieId,
+        ems.map((em) => em.id)
+      ),
+      eq(runoffVotes.userId, user.id)
+    )
+  );
+  await db.insert(runoffVotes).values({ eventMovieId, userId: user.id });
+  revalidatePath(`/serate/${eventId}`);
+}
+
 async function canManage(eventId: number) {
   const user = await requireUser();
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
@@ -308,6 +371,16 @@ export async function closeEvent(eventId: number, formData: FormData) {
 
 export async function reopenEvent(eventId: number) {
   await canManage(eventId);
+  const ems = await db.query.eventMovies.findMany({ where: eq(eventMovies.eventId, eventId) });
+  if (ems.length > 0) {
+    await db.delete(runoffVotes).where(
+      inArray(
+        runoffVotes.eventMovieId,
+        ems.map((em) => em.id)
+      )
+    );
+    await db.update(eventMovies).set({ inRunoff: false }).where(eq(eventMovies.eventId, eventId));
+  }
   await db
     .update(events)
     .set({ status: "open", chosenDate: null, chosenMovieId: null })
