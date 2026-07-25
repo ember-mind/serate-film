@@ -4,17 +4,23 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { movies, watchlist } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
-import { addToWatchlist, removeFromWatchlist } from "@/lib/actions";
+import {
+  addToWatchlist,
+  markMovieSeen,
+  removeFromWatchlist,
+  unmarkMovieSeen,
+} from "@/lib/actions";
 import { Poster } from "@/components/Poster";
 import { actorSlug, parseActors } from "@/lib/actors";
 import { getBeforeWatchingNotes } from "@/lib/before-watching";
 import { directorSlug, parseDirectors } from "@/lib/directors";
 import { filmSlug } from "@/lib/films";
+import { getPersonalMovieStatuses } from "@/lib/personal-movies";
 
 export const dynamic = "force-dynamic";
 
 export default async function FilmPage({ params }: { params: Promise<{ slug: string }> }) {
-  await requireUser();
+  const user = await requireUser();
   const { slug } = await params;
 
   const movie = /^\d+$/.test(slug)
@@ -24,6 +30,7 @@ export default async function FilmPage({ params }: { params: Promise<{ slug: str
 
   const wl = await db.query.watchlist.findFirst({ where: eq(watchlist.movieId, movie.id) });
   const state = !wl || wl.status === "removed" ? "none" : wl.status;
+  const personal = (await getPersonalMovieStatuses(user.id)).get(movie.id);
   const beforeWatchingNotes = getBeforeWatchingNotes(movie);
 
   return (
@@ -142,24 +149,52 @@ export default async function FilmPage({ params }: { params: Promise<{ slug: str
             </section>
           )}
 
-          <div className="mt-7 max-w-xs">
-            {state === "watched" ? (
-              <span className="block rounded-sm border border-riga py-2 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-fumo">
-                Già vista
-              </span>
-            ) : state === "active" ? (
-              <form action={removeFromWatchlist.bind(null, movie.id)}>
-                <button className="w-full rounded-sm border border-proiettore/40 py-2 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-proiettore transition-colors hover:border-velluto-acceso hover:text-velluto-acceso">
-                  In pellicola ✓
-                </button>
-              </form>
-            ) : (
-              <form action={addToWatchlist.bind(null, movie.id)}>
-                <button className="w-full rounded-sm bg-sipario-chiaro py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-schermo transition-colors hover:bg-proiettore hover:text-notte-fonda">
-                  + In pellicola
-                </button>
-              </form>
-            )}
+          <div className="mt-7 grid max-w-md gap-4 sm:grid-cols-2">
+            <section aria-labelledby="stato-personale">
+              <p className="eyebrow mb-2" id="stato-personale">
+                Per me
+              </p>
+              {personal?.together ? (
+                <span className="block rounded-sm border border-proiettore/35 py-2 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-proiettore">
+                  Visto col club ✓
+                </span>
+              ) : personal?.manual ? (
+                <form action={unmarkMovieSeen.bind(null, movie.id)}>
+                  <button className="w-full rounded-sm border border-proiettore/35 py-2 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-proiettore transition-colors hover:border-velluto-acceso hover:text-velluto-acceso">
+                    Visto da me ✓
+                  </button>
+                </form>
+              ) : (
+                <form action={markMovieSeen.bind(null, movie.id)}>
+                  <button className="w-full rounded-sm border border-riga py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-fumo transition-colors hover:border-proiettore hover:text-proiettore">
+                    L&apos;ho visto
+                  </button>
+                </form>
+              )}
+            </section>
+
+            <section aria-labelledby="stato-club">
+              <p className="eyebrow mb-2" id="stato-club">
+                Per il club
+              </p>
+              {state === "watched" ? (
+                <span className="block rounded-sm border border-riga py-2 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-fumo">
+                  Già proiettato
+                </span>
+              ) : state === "active" ? (
+                <form action={removeFromWatchlist.bind(null, movie.id)}>
+                  <button className="w-full rounded-sm border border-proiettore/40 py-2 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-proiettore transition-colors hover:border-velluto-acceso hover:text-velluto-acceso">
+                    In pellicola ✓
+                  </button>
+                </form>
+              ) : (
+                <form action={addToWatchlist.bind(null, movie.id)}>
+                  <button className="w-full rounded-sm bg-sipario-chiaro py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-schermo transition-colors hover:bg-proiettore hover:text-notte-fonda">
+                    + In pellicola
+                  </button>
+                </form>
+              )}
+            </section>
           </div>
         </div>
       </div>

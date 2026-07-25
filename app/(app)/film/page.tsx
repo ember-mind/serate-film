@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { movies, suggestions, users } from "@/db/schema";
@@ -6,6 +7,7 @@ import { dismissSuggestion } from "@/lib/actions";
 import { AddMovieForm } from "./AddMovieForm";
 import { SuggestForm } from "./SuggestForm";
 import { CatalogBrowser, type CatalogMovie } from "./CatalogBrowser";
+import { getPersonalMovieStatuses } from "@/lib/personal-movies";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +22,13 @@ export default async function FilmPage() {
     where: eq(suggestions.status, "pending"),
     orderBy: asc(suggestions.createdAt),
   });
+  const personalStatuses = await getPersonalMovieStatuses(user.id);
   const people = await db.query.users.findMany();
   const nameOf = (id: number) => people.find((p) => p.id === id)?.name ?? "?";
-  const stateOf = (id: number): CatalogMovie["state"] => {
+  const watchlistStateOf = (id: number): CatalogMovie["watchlistState"] => {
     const w = wl.find((x) => x.movieId === id);
     if (!w || w.status === "removed") return "none";
-    return w.status === "watched" ? "watched" : "watchlist";
+    return w.status === "watched" ? "screened" : "watchlist";
   };
 
   return (
@@ -33,6 +36,20 @@ export default async function FilmPage() {
       <div className="apertura mb-8 text-center">
         <p className="titlecard-sub">L&apos;archivio della sala</p>
         <h1 className="titlecard mt-1 text-3xl text-schermo">La Cineteca</h1>
+        <nav
+          aria-label="Esplora la cineteca"
+          className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.18em]"
+        >
+          <Link href="/watchlist" className="text-proiettore hover:text-proiettore-acceso">
+            In pellicola
+          </Link>
+          <Link href="/attori" className="text-fumo hover:text-schermo">
+            Attori
+          </Link>
+          <Link href="/registi" className="text-fumo hover:text-schermo">
+            Registi
+          </Link>
+        </nav>
       </div>
 
       <div className="mb-4 flex flex-col gap-3">
@@ -78,7 +95,9 @@ export default async function FilmPage() {
           runtime: m.runtime,
           posterUrl: m.posterUrl,
           posterCredit: m.posterCredit,
-          state: stateOf(m.id),
+          watchlistState: watchlistStateOf(m.id),
+          seenManually: personalStatuses.get(m.id)?.manual ?? false,
+          seenTogether: personalStatuses.get(m.id)?.together ?? false,
         }))}
       />
     </div>

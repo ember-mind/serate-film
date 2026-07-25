@@ -19,6 +19,7 @@ import {
   attendance,
   ratings,
   suggestions,
+  userSeenMovies,
 } from "@/db/schema";
 import { createSession, destroySession } from "@/lib/session";
 import { requireUser, requireAdmin } from "@/lib/auth";
@@ -36,28 +37,6 @@ export async function login(_prev: { error?: string } | undefined, formData: For
   }
   await createSession(user.id);
   redirect(sanitizeNext(String(formData.get("next") ?? "/")));
-}
-
-export async function signup(_prev: { error?: string } | undefined, formData: FormData) {
-  const name = String(formData.get("name") ?? "").trim();
-  const username = String(formData.get("username") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  if (!username || !name || password.length < 6) {
-    return { error: "Servono username, nome e una password di almeno 6 caratteri." };
-  }
-  const [newUser] = await db
-    .insert(users)
-    .values({
-      username,
-      name,
-      passwordHash: await bcrypt.hash(password, 10),
-      isAdmin: false,
-    })
-    .onConflictDoNothing()
-    .returning();
-  if (!newUser) return { error: "Username già in uso." };
-  await createSession(newUser.id);
-  redirect("/");
 }
 
 export async function logout() {
@@ -135,6 +114,32 @@ export async function removeFromWatchlist(movieId: number) {
   await db.update(watchlist).set({ status: "removed" }).where(eq(watchlist.movieId, movieId));
   revalidatePath("/watchlist");
   revalidatePath("/film");
+}
+
+export async function markMovieSeen(movieId: number) {
+  const user = await requireUser();
+  const movie = await db.query.movies.findFirst({ where: eq(movies.id, movieId) });
+  if (!movie) return;
+
+  await db
+    .insert(userSeenMovies)
+    .values({ userId: user.id, movieId })
+    .onConflictDoNothing();
+
+  revalidatePath("/film");
+  revalidatePath("/film/[slug]", "page");
+  revalidatePath("/io");
+}
+
+export async function unmarkMovieSeen(movieId: number) {
+  const user = await requireUser();
+  await db
+    .delete(userSeenMovies)
+    .where(and(eq(userSeenMovies.userId, user.id), eq(userSeenMovies.movieId, movieId)));
+
+  revalidatePath("/film");
+  revalidatePath("/film/[slug]", "page");
+  revalidatePath("/io");
 }
 
 // ---------- serate ----------
@@ -397,7 +402,7 @@ export async function cancelEvent(eventId: number) {
 }
 
 export async function markWatched(eventId: number, formData: FormData) {
-  const { event } = await canManage(eventId);
+  const { user, event } = await canManage(eventId);
   const attendeeIds = formData.getAll("attendees").map(Number).filter(Boolean);
   await db.delete(attendance).where(eq(attendance.eventId, eventId));
   if (attendeeIds.length > 0) {
@@ -409,13 +414,19 @@ export async function markWatched(eventId: number, formData: FormData) {
   await db.update(events).set({ status: "done" }).where(eq(events.id, eventId));
   if (event.chosenMovieId) {
     await db
-      .update(watchlist)
-      .set({ status: "watched" })
-      .where(eq(watchlist.movieId, event.chosenMovieId));
+      .insert(watchlist)
+      .values({ movieId: event.chosenMovieId, addedBy: user.id, status: "watched" })
+      .onConflictDoUpdate({
+        target: watchlist.movieId,
+        set: { status: "watched" },
+      });
   }
   revalidatePath(`/serate/${eventId}`);
   revalidatePath("/storico");
   revalidatePath("/watchlist");
+  revalidatePath("/film");
+  revalidatePath("/film/[slug]", "page");
+  revalidatePath("/io");
   revalidatePath("/");
 }
 
@@ -485,6 +496,7 @@ export async function deleteUser(userId: number) {
   if (voted || attended) return; // storico da preservare: non si elimina
   await db.delete(movieVotes).where(eq(movieVotes.userId, userId));
   await db.delete(ratings).where(eq(ratings.userId, userId));
+  await db.delete(userSeenMovies).where(eq(userSeenMovies.userId, userId));
   await db.delete(users).where(eq(users.id, userId));
   revalidatePath("/admin");
 }

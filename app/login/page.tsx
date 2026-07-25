@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useActionState, useEffect, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { login } from "@/lib/actions";
 import { quoteOfTheDay, randomQuote } from "@/lib/quotes";
@@ -101,10 +100,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-6 text-center text-sm text-fumo">
-            Non hai un account?{" "}
-            <Link href="/signup" className="text-proiettore hover:text-proiettore-acceso">
-              Registrati
-            </Link>
+            Account riservati ai membri · li crea la regia
           </p>
 
           <div className="mt-10 border-t border-riga pt-6 text-center">

@@ -3,21 +3,35 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const items = [
-  { href: "/", label: "Stasera" },
-  { href: "/film", label: "Cineteca" },
-  { href: "/attori", label: "Attori" },
-  { href: "/registi", label: "Registi" },
-  { href: "/serate", label: "Proiezioni" },
-  { href: "/storico", label: "Registro" },
+type NavItem = {
+  href: string;
+  label: string;
+  paths: string[];
+};
+
+const desktopItems: NavItem[] = [
+  { href: "/", label: "Stasera", paths: ["/"] },
+  { href: "/film", label: "Cineteca", paths: ["/film", "/watchlist", "/attori", "/registi"] },
+  { href: "/serate", label: "Proiezioni", paths: ["/serate"] },
+  { href: "/storico", label: "Registro", paths: ["/storico"] },
+  { href: "/io", label: "Io", paths: ["/io"] },
+];
+
+const mobileItems: NavItem[] = [
+  { href: "/", label: "Stasera", paths: ["/"] },
+  { href: "/film", label: "Cineteca", paths: ["/film", "/watchlist", "/attori", "/registi"] },
+  { href: "/serate", label: "Serate", paths: ["/serate", "/storico"] },
+  { href: "/io", label: "Io", paths: ["/io", "/admin"] },
 ];
 
 export function Nav({ isAdmin, userName }: { isAdmin: boolean; userName: string }) {
   const pathname = usePathname();
-  const links = isAdmin ? [...items, { href: "/admin", label: "Regia" }] : items;
+  const desktopLinks = isAdmin
+    ? [...desktopItems, { href: "/admin", label: "Regia", paths: ["/admin"] }]
+    : desktopItems;
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const isActive = (item: NavItem) =>
+    item.paths.some((path) => (path === "/" ? pathname === "/" : pathname.startsWith(path)));
 
   return (
     <>
@@ -28,18 +42,18 @@ export function Nav({ isAdmin, userName }: { isAdmin: boolean; userName: string 
             Serate<span className="text-proiettore"> Film</span>
           </Link>
           <nav className="hidden gap-6 sm:flex" aria-label="Principale">
-            {links.map((l) => (
+            {desktopLinks.map((item) => (
               <Link
-                key={l.href}
-                href={l.href}
-                aria-current={isActive(l.href) ? "page" : undefined}
+                key={item.href}
+                href={item.href}
+                aria-current={isActive(item) ? "page" : undefined}
                 className={`border-b-2 pb-0.5 font-mono text-xs uppercase tracking-[0.22em] transition-colors ${
-                  isActive(l.href)
+                  isActive(item)
                     ? "border-proiettore text-proiettore"
                     : "border-transparent text-fumo hover:text-schermo"
                 }`}
               >
-                {l.label}
+                {item.label}
               </Link>
             ))}
           </nav>
@@ -50,18 +64,18 @@ export function Nav({ isAdmin, userName }: { isAdmin: boolean; userName: string 
       {/* barra inferiore mobile */}
       <nav
         aria-label="Principale"
-        className="fixed inset-x-0 bottom-0 z-20 flex border-t border-riga bg-notte-fonda/95 backdrop-blur sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-riga bg-notte-fonda/95 backdrop-blur sm:hidden"
       >
-        {links.map((l) => (
+        {mobileItems.map((item) => (
           <Link
-            key={l.href}
-            href={l.href}
-            aria-current={isActive(l.href) ? "page" : undefined}
-            className={`flex-1 py-3 text-center font-mono text-[10px] uppercase tracking-[0.18em] ${
-              isActive(l.href) ? "text-proiettore" : "text-fumo"
+            key={item.href}
+            href={item.href}
+            aria-current={isActive(item) ? "page" : undefined}
+            className={`min-w-0 py-3 text-center font-mono text-[10px] uppercase tracking-[0.14em] ${
+              isActive(item) ? "text-proiettore" : "text-fumo"
             }`}
           >
-            {l.label}
+            {item.label}
           </Link>
         ))}
       </nav>

@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { addToWatchlist, removeFromWatchlist } from "@/lib/actions";
+import {
+  addToWatchlist,
+  markMovieSeen,
+  removeFromWatchlist,
+  unmarkMovieSeen,
+} from "@/lib/actions";
 import { Poster } from "@/components/Poster";
 import { filmSlug } from "@/lib/films";
 
@@ -16,8 +21,19 @@ export type CatalogMovie = {
   runtime: number | null;
   posterUrl: string | null;
   posterCredit: string | null;
-  state: "none" | "watchlist" | "watched";
+  watchlistState: "none" | "watchlist" | "screened";
+  seenManually: boolean;
+  seenTogether: boolean;
 };
+
+type Shelf = "all" | "watchlist" | "seen" | "together";
+
+const SHELVES: Array<{ value: Shelf; label: string }> = [
+  { value: "all", label: "Tutti" },
+  { value: "watchlist", label: "Da vedere insieme" },
+  { value: "seen", label: "Visti da me" },
+  { value: "together", label: "Visti insieme" },
+];
 
 const DECENNI: Record<string, string> = {
   "202": "Anni Venti · il presente",
@@ -60,26 +76,42 @@ function Card({ m }: { m: CatalogMovie }) {
           )}
         </div>
       </Link>
-      <div className="flex flex-1 flex-col justify-end p-3.5 pt-3">
-        <div>
-          {m.state === "watched" ? (
-            <span className="block rounded-sm border border-riga py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-fumo">
-              Già vista
-            </span>
-          ) : m.state === "watchlist" ? (
-            <form action={removeFromWatchlist.bind(null, m.id)}>
-              <button className="w-full rounded-sm border border-proiettore/40 py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-proiettore transition-colors hover:border-velluto-acceso hover:text-velluto-acceso">
-                In pellicola ✓
-              </button>
-            </form>
-          ) : (
-            <form action={addToWatchlist.bind(null, m.id)}>
-              <button className="w-full rounded-sm bg-sipario-chiaro py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-schermo transition-colors hover:bg-proiettore hover:text-notte-fonda">
-                + In pellicola
-              </button>
-            </form>
-          )}
-        </div>
+      <div className="flex flex-1 flex-col justify-end gap-2 p-3.5 pt-3">
+        {m.seenTogether ? (
+          <span className="block rounded-sm border border-proiettore/35 py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-proiettore">
+            Visto col club ✓
+          </span>
+        ) : m.seenManually ? (
+          <form action={unmarkMovieSeen.bind(null, m.id)}>
+            <button className="w-full rounded-sm border border-proiettore/35 py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-proiettore transition-colors hover:border-velluto-acceso hover:text-velluto-acceso">
+              Visto da me ✓
+            </button>
+          </form>
+        ) : (
+          <form action={markMovieSeen.bind(null, m.id)}>
+            <button className="w-full rounded-sm border border-riga py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-fumo transition-colors hover:border-proiettore hover:text-proiettore">
+              L&apos;ho visto
+            </button>
+          </form>
+        )}
+
+        {m.watchlistState === "screened" ? (
+          <span className="block rounded-sm border border-riga py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-fumo">
+            Già proiettato
+          </span>
+        ) : m.watchlistState === "watchlist" ? (
+          <form action={removeFromWatchlist.bind(null, m.id)}>
+            <button className="w-full rounded-sm border border-proiettore/40 py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-proiettore transition-colors hover:border-velluto-acceso hover:text-velluto-acceso">
+              In pellicola ✓
+            </button>
+          </form>
+        ) : (
+          <form action={addToWatchlist.bind(null, m.id)}>
+            <button className="w-full rounded-sm bg-sipario-chiaro py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-schermo transition-colors hover:bg-proiettore hover:text-notte-fonda">
+              + In pellicola
+            </button>
+          </form>
+        )}
       </div>
     </li>
   );
@@ -88,6 +120,7 @@ function Card({ m }: { m: CatalogMovie }) {
 export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
   const [query, setQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("");
+  const [shelf, setShelf] = useState<Shelf>("all");
   const q = query.trim().toLowerCase();
 
   // elenco categorie distinte, derivato dai film già in props (nessuna query)
@@ -104,7 +137,8 @@ export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
   }, [movies]);
 
   const genreActive = selectedGenre !== "";
-  const searching = q.length >= 3; // la ricerca parte dal terzo carattere; prima si sfoglia la cineteca per decennio
+  const shelfActive = shelf !== "all";
+  const searching = q.length > 0;
 
   function matchesGenre(m: CatalogMovie) {
     if (!genreActive) return true;
@@ -115,8 +149,16 @@ export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
       .includes(selectedGenre.toLowerCase());
   }
 
+  function matchesShelf(m: CatalogMovie) {
+    if (shelf === "watchlist") return m.watchlistState === "watchlist";
+    if (shelf === "seen") return m.seenManually || m.seenTogether;
+    if (shelf === "together") return m.seenTogether;
+    return true;
+  }
+
   const results = movies.filter((m) => {
     if (!matchesGenre(m)) return false;
+    if (!matchesShelf(m)) return false;
     if (!searching) return true;
     return (
       m.title.toLowerCase().includes(q) ||
@@ -126,7 +168,7 @@ export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
   });
 
   // la vista per decennio resta solo quando non c'è né ricerca né categoria attiva
-  const flat = searching || genreActive;
+  const flat = searching || genreActive || shelfActive;
   const byDecade = new Map<string, CatalogMovie[]>();
   if (!flat) {
     for (const m of results) {
@@ -138,11 +180,7 @@ export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
 
   const countLabel = !flat
     ? `${movies.length} bobine in archivio`
-    : searching && genreActive
-      ? `${results.length} bobine per “${query.trim()}” in ${selectedGenre}`
-      : genreActive
-        ? `${results.length} bobine in ${selectedGenre}`
-        : `${results.length} bobine per “${query.trim()}”`;
+    : `${results.length} ${results.length === 1 ? "bobina" : "bobine"}`;
 
   return (
     <div>
@@ -172,16 +210,31 @@ export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
         </label>
       </div>
 
+      <fieldset className="mb-5 flex flex-wrap gap-2">
+        <legend className="sr-only">Scaffale</legend>
+        {SHELVES.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={shelf === option.value}
+            onClick={() => setShelf(option.value)}
+            className={`rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors ${
+              shelf === option.value
+                ? "border-proiettore bg-proiettore text-notte-fonda"
+                : "border-riga text-fumo hover:border-proiettore/60 hover:text-schermo"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </fieldset>
+
       <p className="eyebrow mb-6" aria-live="polite">
         {countLabel}
       </p>
 
       {results.length === 0 ? (
-        <p className="text-sm text-fumo">
-          {genreActive
-            ? "Nessun film in questa categoria."
-            : "Niente in cineteca per questa ricerca. Aggiungilo tu qui sopra."}
-        </p>
+        <p className="text-sm text-fumo">Nessun film corrisponde a questi filtri.</p>
       ) : flat ? (
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {results.map((m) => (

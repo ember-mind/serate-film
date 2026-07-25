@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 // Preserva la destinazione di un deep-link quando non c'è ancora una sessione.
 // Controlla solo la presenza del cookie: la verifica del JWT resta a requireUser
 // nel layout, che è la vera guardia. Qui serve solo a non perdere l'URL di partenza.
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (request.cookies.get("serate_session")) return NextResponse.next();
 
   const { pathname, search } = request.nextUrl;

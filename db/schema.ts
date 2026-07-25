@@ -188,3 +188,22 @@ export const ratings = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.eventId, t.userId] })]
 );
+
+// Film segnati manualmente come visti da un membro.
+// Le visioni fatte col club restano derivate da attendance + events:
+// così una correzione delle presenze aggiorna automaticamente anche la cineteca personale.
+export const userSeenMovies = sqliteTable(
+  "user_seen_movies",
+  {
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    movieId: integer("movie_id")
+      .notNull()
+      .references(() => movies.id),
+    watchedAt: text("watched_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.movieId] })]
+);
