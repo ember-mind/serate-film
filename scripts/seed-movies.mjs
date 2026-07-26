@@ -215,6 +215,7 @@ const FILMS = [
   ["Vermiglio", 2024, "Maura Delpero", "Tommaso Ragno, Giuseppe De Domenico", "Drammatico"],
   ["Parthenope", 2024, "Paolo Sorrentino", "Celeste Dalla Porta, Gary Oldman", "Drammatico"],
   ["Flow - Un mondo da salvare", 2024, "Gints Zilbalodis", "", "Animazione"],
+  ["Nosferatu", 2024, "Robert Eggers", "Lily-Rose Depp, Nicholas Hoult, Bill Skarsgård, Willem Dafoe", "Horror, Drammatico, Fantasy"],
   ["I peccatori", 2025, "Ryan Coogler", "Michael B. Jordan", "Horror, Drammatico"],
   ["Weapons", 2025, "Zach Cregger", "Julia Garner, Josh Brolin, Alden Ehrenreich, Amy Madigan", "Horror, Mistero, Thriller"],
   ["F1 - Il film", 2025, "Joseph Kosinski", "Brad Pitt, Damson Idris", "Azione, Sport"],

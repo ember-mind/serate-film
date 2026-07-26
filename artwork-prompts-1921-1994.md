@@ -357,6 +357,11 @@ Generated with built-in image generator, one distinct request per film. Shared c
 - Output: `public/posters/generated/1976-quinto-potere.webp`
 - Visual cues: news anchor desk under harsh lights, wall of television screens, rain-soaked silhouette shouting at window, control room ratings graph without text and corporate boardroom.
 
+## 1976 — Obsession
+
+- Output: `public/posters/generated/1976-obsession.webp`
+- Visual cues: anonymous grieving man facing two identical female silhouettes divided by a cracked mirror, Florence cathedral and New Orleans balcony dissolving together, gold wedding ring and torn photograph; amber-and-teal romantic neo-noir, no actor likenesses or copied film imagery.
+
 ## 1977 — Guerre stellari
 
 - Output: `public/posters/generated/1977-guerre-stellari.webp`

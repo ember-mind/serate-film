@@ -494,6 +494,18 @@ Style: painterly three-dimensional environmental animation with original visual 
 Mood and palette: deep teal, mist gray, moss green, soft dawn gold; survival, cooperation, ecological change, trust, wonder.
 Constraints: no recognizable copyrighted animal character design, no human figures, no copied scene composition, no logo, no title, no typography, no watermark.
 
+## 2024 — Nosferatu
+
+Output: `public/posters/generated/2024-nosferatu.webp`
+
+Use case: stylized-concept
+Asset type: original cinematic website hero artwork, landscape 16:9
+Primary request: Create original key art clearly evoking Robert Eggers' 2024 gothic vampire film in 1838 Germany, without reproducing official marketing, film frames, creature makeup, costumes, or production design.
+Scene and subject: a centered young woman in a simple white nightdress stands at a tall window above a snowbound German town; an enormous elongated vampire shadow crosses the wall toward her, with plague rats and one dying candle near the threshold.
+Style: polished painterly gothic realism, bold iconic silhouette, tactile old-film grain.
+Mood and palette: cold moon-blue darkness and weak amber candlelight; oppressive, sensual, funereal.
+Constraints: anonymous original figures, vampire shown only as distorted shadow, no actor likenesses, no official Count Orlok design, no gore, logo, title, typography, or watermark.
+
 ## 2025 — I peccatori
 
 Output: `public/posters/generated/2025-i-peccatori.webp`

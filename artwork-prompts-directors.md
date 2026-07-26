@@ -1026,3 +1026,13 @@ Built-in image generator, one distinct request per director. Shared direction: s
 
 - Output: `public/directors/generated/zach-cregger.webp`
 - Film cues: Weapons (2025).
+
+## Brian De Palma
+
+- Output: `public/directors/generated/brian-de-palma.webp`
+- Film cues: Obsession (1976); split mirror, 1970s New Orleans balcony, Florence cathedral geometry, gold wedding ring.
+
+## Robert Eggers
+
+- Output: `public/directors/generated/robert-eggers.webp`
+- Film cues: Nosferatu (2024); 1838 gothic window, snowbound German roofs, candle, elongated vampire shadow.
