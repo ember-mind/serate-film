@@ -102,13 +102,13 @@ function Card({ m }: { m: CatalogMovie }) {
         ) : m.watchlistState === "watchlist" ? (
           <form action={removeFromWatchlist.bind(null, m.id)}>
             <button className="w-full rounded-sm border border-proiettore/40 py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-proiettore transition-colors hover:border-velluto-acceso hover:text-velluto-acceso">
-              In pellicola ✓
+              Nella watchlist ✓
             </button>
           </form>
         ) : (
           <form action={addToWatchlist.bind(null, m.id)}>
             <button className="w-full rounded-sm bg-sipario-chiaro py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-schermo transition-colors hover:bg-proiettore hover:text-notte-fonda">
-              + In pellicola
+              + Watchlist
             </button>
           </form>
         )}

@@ -25,7 +25,7 @@ export default async function WatchlistPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <p className="titlecard-sub">Da vedere insieme</p>
-          <h1 className="titlecard mt-1 text-2xl text-schermo">In pellicola</h1>
+          <h1 className="titlecard mt-1 text-2xl text-schermo">Watchlist</h1>
         </div>
         <Link
           href="/serate/nuova"

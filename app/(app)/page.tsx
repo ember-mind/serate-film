@@ -181,11 +181,11 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* pellicola: ultime in watchlist */}
+      {/* ultimi film in watchlist */}
       <section aria-labelledby="watchlist-home" className="-mx-4">
         <div className="mb-3 flex items-baseline justify-between px-4">
           <p className="eyebrow" id="watchlist-home">
-            In pellicola · da vedere insieme
+            Watchlist
           </p>
           <Link href="/watchlist" className="font-mono text-xs uppercase tracking-[0.18em] text-fumo hover:text-schermo">
             Tutta →

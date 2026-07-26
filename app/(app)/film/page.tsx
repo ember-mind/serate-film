@@ -41,7 +41,7 @@ export default async function FilmPage() {
           className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.18em]"
         >
           <Link href="/watchlist" className="text-proiettore hover:text-proiettore-acceso">
-            In pellicola
+            Watchlist
           </Link>
           <Link href="/attori" className="text-fumo hover:text-schermo">
             Attori

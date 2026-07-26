@@ -184,13 +184,13 @@ export default async function FilmPage({ params }: { params: Promise<{ slug: str
               ) : state === "active" ? (
                 <form action={removeFromWatchlist.bind(null, movie.id)}>
                   <button className="w-full rounded-sm border border-proiettore/40 py-2 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-proiettore transition-colors hover:border-velluto-acceso hover:text-velluto-acceso">
-                    In pellicola ✓
+                    Nella watchlist ✓
                   </button>
                 </form>
               ) : (
                 <form action={addToWatchlist.bind(null, movie.id)}>
                   <button className="w-full rounded-sm bg-sipario-chiaro py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-schermo transition-colors hover:bg-proiettore hover:text-notte-fonda">
-                    + In pellicola
+                    + Watchlist
                   </button>
                 </form>
               )}
