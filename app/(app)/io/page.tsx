@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { movies } from "@/db/schema";
+import { movies, userFriends } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { logout } from "@/lib/actions";
 import { getPersonalMovieStatuses } from "@/lib/personal-movies";
@@ -23,6 +23,9 @@ export default async function MyMoviesPage() {
       ? await db.query.movies.findMany({ where: inArray(movies.id, movieIds) })
       : [];
   const togetherCount = entries.filter(([, status]) => status.together).length;
+  const friends = await db.query.userFriends.findMany({
+    where: eq(userFriends.userId, user.id),
+  });
 
   return (
     <div>
@@ -58,6 +61,9 @@ export default async function MyMoviesPage() {
         </Link>
         <Link href="/registi" className="rounded-full border border-riga px-3 py-1.5 text-fumo hover:text-schermo">
           Registi
+        </Link>
+        <Link href="/io/amici" className="rounded-full border border-riga px-3 py-1.5 text-fumo hover:text-schermo">
+          Amici · {friends.length}
         </Link>
         {user.isAdmin && (
           <Link href="/admin" className="rounded-full border border-riga px-3 py-1.5 text-fumo hover:text-schermo">

@@ -20,12 +20,21 @@ type PickMovie = {
 
 const CATALOG_LIMIT = 24;
 
-export function NewEventForm({ movies, people }: { movies: PickMovie[]; people: Person[] }) {
+export function NewEventForm({
+  movies,
+  people,
+  friendIds,
+}: {
+  movies: PickMovie[];
+  people: Person[];
+  friendIds: number[];
+}) {
   const [state, action, pending] = useActionState(createEvent, undefined);
   const [dateCount, setDateCount] = useState(2);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [query, setQuery] = useState("");
-  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [visibility, setVisibility] = useState<"friends" | "private" | "public">("friends");
+  const friends = people.filter((person) => friendIds.includes(person.id));
 
   const toggle = (id: number) =>
     setSelected((prev) => {
@@ -158,6 +167,38 @@ export function NewEventForm({ movies, people }: { movies: PickMovie[]; people: 
             <input
               type="radio"
               name="visibility"
+              value="friends"
+              checked={visibility === "friends"}
+              onChange={() => setVisibility("friends")}
+              className="mt-1 accent-[#e8b84b]"
+            />
+            <span>
+              <span className="block">I miei amici</span>
+              <span className="block text-xs text-fumo">
+                {friends.length > 0
+                  ? `${friends.length} ${friends.length === 1 ? "persona salvata" : "persone salvate"}`
+                  : "Non hai ancora salvato nessuno."}
+              </span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-riga bg-notte px-3 py-2 text-sm has-checked:border-proiettore">
+            <input
+              type="radio"
+              name="visibility"
+              value="private"
+              checked={visibility === "private"}
+              onChange={() => setVisibility("private")}
+              className="mt-1 accent-[#e8b84b]"
+            />
+            <span>
+              <span className="block">Scelgo le persone</span>
+              <span className="block text-xs text-fumo">Personalizza gli invitati per questa serata.</span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-riga bg-notte px-3 py-2 text-sm has-checked:border-proiettore">
+            <input
+              type="radio"
+              name="visibility"
               value="public"
               checked={visibility === "public"}
               onChange={() => setVisibility("public")}
@@ -168,18 +209,17 @@ export function NewEventForm({ movies, people }: { movies: PickMovie[]; people: 
               <span className="block text-xs text-fumo">Chiunque nel club può vedere e votare.</span>
             </span>
           </label>
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-riga bg-notte px-3 py-2 text-sm has-checked:border-proiettore">
-            <input
-              type="radio"
-              name="visibility"
-              value="private"
-              checked={visibility === "private"}
-              onChange={() => setVisibility("private")}
-              className="accent-[#e8b84b]"
-            />
-            Solo le persone che scelgo
-          </label>
         </div>
+        {visibility === "friends" && (
+          <div className="clear-both mt-3 text-xs text-fumo">
+            {friends.length > 0
+              ? friends.map((friend) => friend.name).join(", ")
+              : "La serata sarà visibile solo a te."}{" "}
+            <Link href="/io/amici" className="text-proiettore underline">
+              Gestisci amici
+            </Link>
+          </div>
+        )}
       </fieldset>
 
       {visibility === "private" && (
@@ -193,6 +233,7 @@ export function NewEventForm({ movies, people }: { movies: PickMovie[]; people: 
                     type="checkbox"
                     name="invitees"
                     value={p.id}
+                    defaultChecked={friendIds.includes(p.id)}
                     className="accent-[#e8b84b]"
                   />
                   {p.name}

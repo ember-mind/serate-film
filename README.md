@@ -1,6 +1,6 @@
 # Serate Film
 
-Cinema club privato per il gruppo: catalogo film autonomo, watchlist condivisa, cineteca personale, sondaggi data+film con approval voting, storico delle serate viste con presenti, stelline e note.
+Cinema club privato per il gruppo: catalogo film autonomo, watchlist condivisa, cineteca personale, lista amici, sondaggi data+film con approval voting, storico delle serate viste con presenti, stelline e note.
 
 Nessuna API esterna a runtime: il catalogo è nostro (SQLite), pre-caricato con oltre 200 film e ampliabile da qualunque membro. Titoli, anno, regia, cast, generi e durata restano dati locali; le immagini in `public/posters/generated/` sono artwork originali, non poster ufficiali.
 
@@ -27,10 +27,19 @@ npm run dev
 Gli altri membri del gruppo si creano dall'interfaccia: `/admin` (voce "Gruppo", visibile solo agli admin).
 Non esiste registrazione pubblica: gli account restano riservati ai membri invitati.
 
+Per una demo locale già popolata:
+
+```bash
+npm run seed:demo
+```
+
+Crea quattro account `demo*` con password `cinema123`, due amici salvati, sei film in
+watchlist e una serata visibile solo a Demo, Alice Demo e Bruno Demo.
+
 ## Come funziona una serata
 
 1. Chiunque aggiunge film alla watchlist dal catalogo (`/film`); se un film manca, lo si aggiunge a mano (titolo, anno, regista, attori).
-2. Si crea una serata (`/serate/nuova`): 1–5 date proposte + rosa di film dalla watchlist.
+2. Si crea una serata (`/serate/nuova`): amici invitati di default, 1–5 date proposte + rosa di film dalla watchlist.
 3. Tutti votano: Sì/No sulle date, approval voting sui film (timbra tutti quelli che ti vanno bene).
 4. Chi ha creato la serata chiude le votazioni: il sito propone data e film vincenti, modificabili.
 5. Dopo la visione: "Segna come vista" (presenti pre-compilati da chi era disponibile), poi ognuno lascia stelline e commento. Tutto finisce nello Storico.
@@ -44,6 +53,13 @@ la cineteca personale.
 
 In Cineteca si può filtrare tra tutti i film, quelli da vedere insieme, quelli visti dal membro
 e quelli visti insieme al club.
+
+## Amici e inviti
+
+Ogni membro mantiene la propria lista su `/io/amici`: è una scorciatoia personale, senza
+richieste da accettare e senza obbligo di reciprocità. Una nuova serata è visibile di default
+al creatore e ai suoi amici. Durante la creazione si possono invece scegliere persone diverse
+oppure aprire esplicitamente la serata a tutto il club.
 
 ## Deploy (Coolify)
 

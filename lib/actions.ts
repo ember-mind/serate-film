@@ -3,10 +3,11 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import {
   users,
+  userFriends,
   movies,
   watchlist,
   events,
@@ -142,6 +143,43 @@ export async function unmarkMovieSeen(movieId: number) {
   revalidatePath("/io");
 }
 
+// ---------- amici ----------
+
+export async function saveFriends(formData: FormData) {
+  const user = await requireUser();
+  const allUsers = await db.query.users.findMany();
+  const validIds = new Set(
+    allUsers.filter((person) => person.id !== user.id).map((person) => person.id)
+  );
+  const friendIds = [
+    ...new Set(
+      formData
+        .getAll("friendIds")
+        .map(Number)
+        .filter((id) => validIds.has(id))
+    ),
+  ];
+
+  db.transaction((tx) => {
+    tx.delete(userFriends).where(eq(userFriends.userId, user.id)).run();
+    if (friendIds.length > 0) {
+      tx.insert(userFriends)
+        .values(
+          friendIds.map((friendUserId) => ({
+            userId: user.id,
+            friendUserId,
+          }))
+        )
+        .run();
+    }
+  });
+
+  revalidatePath("/io");
+  revalidatePath("/io/amici");
+  revalidatePath("/serate/nuova");
+  redirect("/io/amici?salvati=1");
+}
+
 // ---------- serate ----------
 
 export async function createEvent(_prev: { error?: string } | undefined, formData: FormData) {
@@ -160,17 +198,31 @@ export async function createEvent(_prev: { error?: string } | undefined, formDat
   if (movieIds.length < 1) return { error: "Scegli almeno un film dalla watchlist." };
   if (movieIds.length > 8) return { error: "Massimo 8 film in rosa." };
 
-  const visibility = String(formData.get("visibility") ?? "public");
-  const allUsers = await db.query.users.findMany();
-  const inviteeIds = [
-    ...new Set(
-      formData
-        .getAll("invitees")
-        .map(Number)
-        .filter((n) => allUsers.some((u) => u.id === n))
-    ),
-  ];
-  const restricted = visibility === "private";
+  const rawVisibility = String(formData.get("visibility") ?? "friends");
+  const visibility =
+    rawVisibility === "public" || rawVisibility === "private" || rawVisibility === "friends"
+      ? rawVisibility
+      : "friends";
+  let inviteeIds: number[] = [];
+
+  if (visibility === "friends") {
+    const friends = await db.query.userFriends.findMany({
+      where: eq(userFriends.userId, user.id),
+    });
+    inviteeIds = friends.map((friend) => friend.friendUserId);
+  } else if (visibility === "private") {
+    const allUsers = await db.query.users.findMany();
+    const validIds = new Set(allUsers.map((person) => person.id));
+    inviteeIds = [
+      ...new Set(
+        formData
+          .getAll("invitees")
+          .map(Number)
+          .filter((id) => validIds.has(id))
+      ),
+    ];
+  }
+  const restricted = visibility !== "public";
 
   const [event] = await db
     .insert(events)
@@ -497,6 +549,9 @@ export async function deleteUser(userId: number) {
   await db.delete(movieVotes).where(eq(movieVotes.userId, userId));
   await db.delete(ratings).where(eq(ratings.userId, userId));
   await db.delete(userSeenMovies).where(eq(userSeenMovies.userId, userId));
+  await db
+    .delete(userFriends)
+    .where(or(eq(userFriends.userId, userId), eq(userFriends.friendUserId, userId)));
   await db.delete(users).where(eq(users.id, userId));
   revalidatePath("/admin");
 }

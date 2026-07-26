@@ -12,6 +12,23 @@ export const users = sqliteTable("users", {
     .default(sql`(datetime('now'))`),
 });
 
+// Rubrica personale: la relazione è direzionale e non richiede accettazione.
+export const userFriends = sqliteTable(
+  "user_friends",
+  {
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    friendUserId: integer("friend_user_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.friendUserId] })]
+);
+
 // Catalogo nostro: fatti puri (titolo, anno, regista, attori). Niente API esterne.
 export const movies = sqliteTable(
   "movies",
