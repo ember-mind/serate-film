@@ -5,8 +5,11 @@ import { db } from "@/db";
 import {
   attendance,
   dateVotes,
+  eventContributions,
   eventDates,
+  eventInviteLinks,
   eventMovies,
+  eventNeeds,
   events,
   movies,
   movieVotes,
@@ -17,15 +20,21 @@ import {
 } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import {
+  addEventNeed,
   cancelEvent,
   closeEvent,
+  createEventInviteLink,
+  deleteEventNeed,
   markWatched,
   rateEvent,
+  regenerateEventInviteLink,
   reopenEvent,
+  saveEventContribution,
   saveEventNotes,
   startRunoff,
   submitRunoffVote,
   submitVotes,
+  toggleEventNeedClaim,
   toggleReviewLike,
 } from "@/lib/actions";
 import { canSee, inviteesByEvent } from "@/lib/invites";
@@ -35,10 +44,22 @@ import { ProposeMovie } from "@/components/ProposeMovie";
 import { Stars } from "@/components/Stars";
 import { FocusSection } from "@/components/FocusSection";
 import { VoteReminder } from "@/components/VoteReminder";
+import { InviteLink } from "@/components/InviteLink";
 import { formatDateFull, formatDateLong } from "@/lib/dates";
 import { filmSlug } from "@/lib/films";
 
 export const dynamic = "force-dynamic";
+
+const NEED_PRESETS = [
+  "🍿 Popcorn",
+  "🍺 Birre",
+  "🥤 Bibite",
+  "💧 Acqua",
+  "🧊 Ghiaccio",
+  "🍰 Dolce",
+  "🎬 Film o streaming",
+  "🔌 Cavi e adattatori",
+];
 
 export default async function SerataPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
@@ -147,6 +168,18 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
     event.status === "done"
       ? await db.query.reviewLikes.findMany({ where: eq(reviewLikes.eventId, eventId) })
       : [];
+  const contributions = await db.query.eventContributions.findMany({
+    where: eq(eventContributions.eventId, eventId),
+  });
+  const needs = await db.query.eventNeeds.findMany({
+    where: eq(eventNeeds.eventId, eventId),
+    orderBy: asc(eventNeeds.id),
+  });
+  const inviteLink = canManage
+    ? await db.query.eventInviteLinks.findFirst({
+        where: eq(eventInviteLinks.eventId, eventId),
+      })
+    : null;
 
   // suggerimenti chiusura: data più disponibile, film più approvato
   const bestDate = [...dates].sort(
@@ -215,6 +248,192 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
           </p>
         )}
       </header>
+
+      {canManage && event.status !== "cancelled" && (
+        <section className="ticket p-5" aria-labelledby="invita">
+          <p className="step-title mb-2" id="invita">
+            Invita gli amici
+          </p>
+          <p className="mb-4 text-sm text-fumo">
+            Chi apre il link può accedere oppure creare un account. Entrerà solo in questa serata.
+          </p>
+          {inviteLink ? (
+            <>
+              <InviteLink token={inviteLink.token} eventTitle={title} />
+              <form action={regenerateEventInviteLink.bind(null, eventId)} className="mt-3">
+                <button className="text-xs text-fumo underline hover:text-schermo">
+                  Invalida il vecchio link e creane uno nuovo
+                </button>
+              </form>
+            </>
+          ) : (
+            <form action={createEventInviteLink.bind(null, eventId)}>
+              <button className="rounded-lg bg-proiettore px-4 py-2.5 text-sm font-semibold text-notte-fonda transition-colors hover:bg-proiettore-acceso">
+                Crea link d&apos;invito
+              </button>
+            </form>
+          )}
+        </section>
+      )}
+
+      {event.status !== "cancelled" && (
+        <section className="ticket p-5" aria-labelledby="cosa-portiamo">
+          <div className="mb-4">
+            <p className="step-title" id="cosa-portiamo">
+              Cosa portiamo?
+            </p>
+            <p className="mt-1 text-sm text-fumo">
+              Scegli qualcosa dalla lista. Quello che manca resta subito visibile.
+            </p>
+          </div>
+
+          {needs.length > 0 ? (
+            <ul className="grid gap-2">
+              {needs.map((need) => {
+                const mine = need.claimedBy === user.id;
+                const claimed = need.claimedBy !== null;
+                return (
+                  <li
+                    key={need.id}
+                    className={`flex flex-col gap-3 rounded-lg border px-3 py-3 sm:flex-row sm:items-center sm:justify-between ${
+                      claimed ? "border-riga bg-notte" : "border-proiettore/60 bg-proiettore/5"
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-schermo">{need.item}</p>
+                      {need.quantity && (
+                        <p className="mt-0.5 text-xs text-fumo">{need.quantity}</p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      {event.status === "done" ? (
+                        <span className="text-xs text-fumo">
+                          {claimed ? `Portato da ${nameOf(need.claimedBy!)}` : "Non assegnato"}
+                        </span>
+                      ) : mine ? (
+                        <form action={toggleEventNeedClaim.bind(null, eventId, need.id)}>
+                          <button className="rounded-full border border-proiettore bg-proiettore/10 px-3 py-1.5 text-xs text-proiettore transition-colors hover:bg-proiettore/20">
+                            ✓ Lo porti tu · lascia
+                          </button>
+                        </form>
+                      ) : claimed ? (
+                        <span className="rounded-full border border-riga px-3 py-1.5 text-xs text-fumo">
+                          Lo porta {nameOf(need.claimedBy!)}
+                        </span>
+                      ) : (
+                        <form action={toggleEventNeedClaim.bind(null, eventId, need.id)}>
+                          <button className="rounded-full bg-proiettore px-3 py-1.5 text-xs font-semibold text-notte-fonda transition-colors hover:bg-proiettore-acceso">
+                            Lo porto io
+                          </button>
+                        </form>
+                      )}
+                      {canManage && event.status !== "done" && (
+                        <form action={deleteEventNeed.bind(null, eventId, need.id)}>
+                          <button
+                            aria-label={`Rimuovi ${need.item} dalla lista`}
+                            className="text-lg leading-none text-fumo transition-colors hover:text-velluto"
+                          >
+                            ×
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="rounded-lg border border-dashed border-riga px-3 py-4 text-sm text-fumo">
+              Lista ancora vuota. Chi organizza aggiunge quello che serve.
+            </p>
+          )}
+
+          {canManage && event.status !== "done" && (
+            <div className="mt-5 border-t border-riga pt-5">
+              <p className="eyebrow mb-3">Aggiungi alla lista</p>
+              <div className="mb-3 flex flex-wrap gap-2">
+                {NEED_PRESETS.filter(
+                  (preset) =>
+                    !needs.some(
+                      (need) =>
+                        need.item.toLocaleLowerCase("it") === preset.toLocaleLowerCase("it")
+                    )
+                ).map((preset) => (
+                  <form key={preset} action={addEventNeed.bind(null, eventId)}>
+                    <input type="hidden" name="item" value={preset} />
+                    <button className="rounded-full border border-riga px-3 py-1.5 text-xs text-fumo transition-colors hover:border-proiettore hover:text-schermo">
+                      + {preset}
+                    </button>
+                  </form>
+                ))}
+              </div>
+              <form
+                action={addEventNeed.bind(null, eventId)}
+                className="grid gap-2 sm:grid-cols-[1fr_10rem_auto]"
+              >
+                <input
+                  name="item"
+                  maxLength={80}
+                  required
+                  placeholder="Altra cosa da portare"
+                  aria-label="Cosa serve"
+                  className="min-w-0 rounded-lg border border-riga bg-sipario px-3 py-2.5 text-sm placeholder:text-fumo/50"
+                />
+                <input
+                  name="quantity"
+                  maxLength={40}
+                  placeholder="Quantità"
+                  aria-label="Quantità facoltativa"
+                  className="min-w-0 rounded-lg border border-riga bg-sipario px-3 py-2.5 text-sm placeholder:text-fumo/50"
+                />
+                <button className="rounded-lg border border-proiettore px-4 py-2.5 text-sm font-semibold text-proiettore transition-colors hover:bg-proiettore/10">
+                  Aggiungi
+                </button>
+              </form>
+            </div>
+          )}
+
+          <div className="mt-5 border-t border-riga pt-5">
+            <p className="eyebrow mb-1">Extra personali</p>
+            <p className="mb-3 text-xs text-fumo">
+              Qualcosa fuori lista? Scrivilo qui.
+            </p>
+            {contributions.length > 0 && (
+              <ul className="mb-3 flex flex-wrap gap-2">
+                {contributions.map((contribution) => (
+                  <li
+                    key={contribution.userId}
+                    className="rounded-full border border-riga bg-notte px-3 py-1.5 text-xs"
+                  >
+                    <span className="font-semibold">{nameOf(contribution.userId)}</span>
+                    <span className="text-fumo"> · {contribution.item}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {event.status !== "done" && (
+              <form
+                action={saveEventContribution.bind(null, eventId)}
+                className="flex flex-col gap-2 sm:flex-row"
+              >
+                <input
+                  name="item"
+                  defaultValue={
+                    contributions.find((contribution) => contribution.userId === user.id)?.item ?? ""
+                  }
+                  maxLength={160}
+                  placeholder="Io porto…"
+                  aria-label="Cosa porti alla serata"
+                  className="min-w-0 flex-1 rounded-lg border border-riga bg-sipario px-3 py-2.5 text-sm placeholder:text-fumo/50"
+                />
+                <button className="rounded-lg border border-proiettore px-4 py-2.5 text-sm font-semibold text-proiettore transition-colors hover:bg-proiettore/10">
+                  Segna cosa porto
+                </button>
+              </form>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ---------- VOTAZIONE ---------- */}
       {event.status === "open" && (

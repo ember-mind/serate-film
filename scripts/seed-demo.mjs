@@ -57,11 +57,13 @@ const seed = sqlite.transaction(() => {
   const existingEvent = sqlite
     .prepare("SELECT id FROM events WHERE title = '[Demo] Serata tra amici'")
     .get();
+  let openEventId = existingEvent?.id;
   if (!existingEvent && sampleMovies.length >= 3) {
     const event = sqlite
       .prepare("INSERT INTO events (title, created_by) VALUES (?, ?)")
       .run("[Demo] Serata tra amici", ids.demo);
     const eventId = Number(event.lastInsertRowid);
+    openEventId = eventId;
     const today = new Date();
     const dateAfter = (days) => {
       const date = new Date(today);
@@ -84,6 +86,36 @@ const seed = sqlite.transaction(() => {
     addInvitee.run(eventId, ids.demo);
     addInvitee.run(eventId, ids["demo-alice"]);
     addInvitee.run(eventId, ids["demo-bruno"]);
+  }
+  if (openEventId) {
+    sqlite
+      .prepare(`
+        INSERT INTO event_invite_links (event_id, token)
+        VALUES (?, lower(hex(randomblob(24))))
+        ON CONFLICT(event_id) DO NOTHING
+      `)
+      .run(openEventId);
+    const addContribution = sqlite.prepare(`
+      INSERT INTO event_contributions (event_id, user_id, item)
+      VALUES (?, ?, ?)
+      ON CONFLICT(event_id, user_id) DO UPDATE SET
+        item = excluded.item,
+        updated_at = datetime('now')
+    `);
+    addContribution.run(openEventId, ids.demo, "Proiettore");
+    addContribution.run(openEventId, ids["demo-alice"], "Focaccia fatta in casa");
+
+    const addNeed = sqlite.prepare(`
+      INSERT INTO event_needs (event_id, item, quantity, claimed_by)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(event_id, item) DO UPDATE SET
+        quantity = excluded.quantity,
+        claimed_by = excluded.claimed_by
+    `);
+    addNeed.run(openEventId, "🍿 Popcorn", "2 ciotole", ids.demo);
+    addNeed.run(openEventId, "🍺 Birre", "6 bottiglie", ids["demo-alice"]);
+    addNeed.run(openEventId, "🧊 Ghiaccio", "1 sacchetto", null);
+    addNeed.run(openEventId, "🍰 Dolce", null, null);
   }
 
   const watchedEvent =

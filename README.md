@@ -1,6 +1,6 @@
 # Serate Film
 
-Cinema club privato per il gruppo: catalogo film autonomo, watchlist condivisa, cineteca personale, lista amici, sondaggi data+film con approval voting, storico delle serate viste con presenti, stelline e note.
+Cinema club privato per il gruppo: catalogo film autonomo, watchlist condivisa, cineteca personale, lista amici, inviti via link, sondaggi data+film con approval voting, contributi alla serata, storico dei film visti con presenti, stelline e note.
 
 Nessuna API esterna durante la navigazione: il catalogo è nostro (SQLite), pre-caricato con oltre 300 film e ampliabile da qualunque membro. Titoli, anno, regia, cast, generi e durata restano dati locali; le immagini in `public/posters/generated/` sono artwork originali, non poster ufficiali.
 
@@ -26,8 +26,8 @@ node scripts/seed-movies.mjs
 npm run dev
 ```
 
-Gli altri membri del gruppo si creano dall'interfaccia: `/admin` (voce "Gruppo", visibile solo agli admin).
-Non esiste registrazione pubblica: gli account restano riservati ai membri invitati.
+Gli altri membri si possono creare dall'interfaccia `/admin` oppure registrare tramite un link
+d'invito a una serata. Non esiste registrazione pubblica senza invito.
 
 Per una demo locale già popolata:
 
@@ -36,16 +36,17 @@ npm run seed:demo
 ```
 
 Crea quattro account `demo*` con password `cinema123`, due amici salvati, sei film in
-watchlist, una serata da votare e una già vista con pagelle. Alice Demo parte con una notifica
-in sospeso, così campana e pagina notifiche sono subito verificabili.
+watchlist, una serata da votare con contributi e link d'invito, e una già vista con pagelle.
+Alice Demo parte con una notifica in sospeso, così campana e pagina notifiche sono verificabili.
 
 ## Come funziona una serata
 
 1. Chiunque aggiunge film alla watchlist dal catalogo (`/film`); se un film manca, lo si aggiunge a mano (titolo, anno, regista, attori).
 2. Si crea una serata (`/serate/nuova`): amici invitati di default, 1–5 date proposte + rosa di film dalla watchlist.
-3. Tutti votano: Sì/No sulle date, approval voting sui film (timbra tutti quelli che ti vanno bene).
-4. Chi ha creato la serata chiude le votazioni: il sito propone data e film vincenti, modificabili.
-5. Dopo la visione: "Segna come vista" (presenti pre-compilati da chi era disponibile), poi ognuno lascia stelline e commento. Tutto finisce nello Storico.
+3. Si condivide il link d'invito; chi non ha ancora un account può registrarsi dal biglietto.
+4. Chi organizza prepara la checklist di ciò che serve; gli invitati scelgono "Lo porto io" e possono aggiungere extra personali.
+5. Chi ha creato la serata chiude le votazioni: il sito propone data e film vincenti, modificabili.
+6. Dopo la visione: "Segna come vista" (presenti pre-compilati da chi era disponibile), poi ognuno lascia stelline e commento. Tutto finisce nello Storico.
 
 ## Cineteca personale
 
@@ -62,7 +63,16 @@ e quelli visti insieme al club.
 Ogni membro mantiene la propria lista su `/io/amici`: è una scorciatoia personale, senza
 richieste da accettare e senza obbligo di reciprocità. Una nuova serata è visibile di default
 al creatore e ai suoi amici. Durante la creazione si possono invece scegliere persone diverse
-oppure aprire esplicitamente la serata a tutto il club.
+oppure aprire esplicitamente la serata a tutto il club. Ogni serata ha anche un link segreto:
+chi lo riceve può accedere o creare un account e viene aggiunto solo a quella serata. Il creatore
+può rigenerare il link, invalidando quello precedente.
+
+## Cosa portiamo
+
+Chi crea la serata prepara una checklist partendo dai suggerimenti rapidi oppure aggiungendo
+elementi e quantità personalizzate. Ogni invitato può prendere in carico una voce con
+**"Lo porto io"** e liberarla se cambia idea. Le voci ancora scoperte restano evidenziate.
+Un campo separato raccoglie contributi extra fuori lista.
 
 ## Pagelle e notifiche
 

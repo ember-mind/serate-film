@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
@@ -12,8 +13,11 @@ import {
   watchlist,
   events,
   eventDates,
+  eventContributions,
+  eventInviteLinks,
   eventInvitees,
   eventMovies,
+  eventNeeds,
   dateVotes,
   movieVotes,
   runoffVotes,
@@ -41,6 +45,67 @@ export async function login(_prev: { error?: string } | undefined, formData: For
   }
   await createSession(user.id);
   redirect(sanitizeNext(String(formData.get("next") ?? "/")));
+}
+
+export async function signupWithInvite(
+  _prev: { error?: string } | undefined,
+  formData: FormData
+) {
+  const token = String(formData.get("token") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const username = String(formData.get("username") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
+
+  const invite = await db.query.eventInviteLinks.findFirst({
+    where: eq(eventInviteLinks.token, token),
+  });
+  const event = invite
+    ? await db.query.events.findFirst({ where: eq(events.id, invite.eventId) })
+    : null;
+  if (!invite || !event || event.status === "cancelled") {
+    return { error: "Invito non valido o serata annullata." };
+  }
+  if (!name || name.length > 60) return { error: "Inserisci il tuo nome." };
+  if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
+    return { error: "Username: 3–30 caratteri, solo lettere, numeri, punto, trattino." };
+  }
+  if (password.length < 8) return { error: "Password di almeno 8 caratteri." };
+  if (password !== passwordConfirm) return { error: "Le password non coincidono." };
+
+  const existing = await db.query.users.findFirst({ where: eq(users.username, username) });
+  if (existing) return { error: "Username già in uso. Accedi se è il tuo." };
+
+  let newUser: typeof users.$inferSelect;
+  try {
+    [newUser] = await db
+      .insert(users)
+      .values({
+        username,
+        name,
+        passwordHash: await bcrypt.hash(password, 10),
+      })
+      .returning();
+  } catch {
+    return { error: "Username già in uso. Provane un altro." };
+  }
+
+  const currentInvitees = await db.query.eventInvitees.findMany({
+    where: eq(eventInvitees.eventId, event.id),
+  });
+  // Nessuna riga indica serata pubblica: aggiungere una riga la renderebbe
+  // involontariamente privata. Per serate riservate, invece, il link ammette
+  // il nuovo account alla lista.
+  if (currentInvitees.length > 0) {
+    await db
+      .insert(eventInvitees)
+      .values({ eventId: event.id, userId: newUser.id })
+      .onConflictDoNothing();
+  }
+
+  await createSession(newUser.id);
+  revalidatePath(`/serate/${event.id}`);
+  redirect(`/serate/${event.id}?benvenuto=1`);
 }
 
 export async function logout() {
@@ -262,7 +327,138 @@ export async function createEvent(_prev: { error?: string } | undefined, formDat
       .insert(eventInvitees)
       .values(withCreator.map((userId) => ({ eventId: event.id, userId })));
   }
+  await db
+    .insert(eventInviteLinks)
+    .values({ eventId: event.id, token: newInviteToken() });
   redirect(`/serate/${event.id}`);
+}
+
+function newInviteToken() {
+  return randomBytes(24).toString("base64url");
+}
+
+export async function createEventInviteLink(eventId: number) {
+  await canManage(eventId);
+  await db
+    .insert(eventInviteLinks)
+    .values({ eventId, token: newInviteToken() })
+    .onConflictDoNothing();
+  revalidatePath(`/serate/${eventId}`);
+}
+
+export async function regenerateEventInviteLink(eventId: number) {
+  await canManage(eventId);
+  await db
+    .update(eventInviteLinks)
+    .set({ token: newInviteToken(), createdAt: new Date().toISOString() })
+    .where(eq(eventInviteLinks.eventId, eventId));
+  revalidatePath(`/serate/${eventId}`);
+}
+
+export async function acceptEventInvite(token: string) {
+  const user = await requireUser();
+  const invite = await db.query.eventInviteLinks.findFirst({
+    where: eq(eventInviteLinks.token, token),
+  });
+  const event = invite
+    ? await db.query.events.findFirst({ where: eq(events.id, invite.eventId) })
+    : null;
+  if (!invite || !event || event.status === "cancelled") redirect("/serate");
+
+  const currentInvitees = await db.query.eventInvitees.findMany({
+    where: eq(eventInvitees.eventId, event.id),
+  });
+  if (currentInvitees.length > 0) {
+    await db
+      .insert(eventInvitees)
+      .values({ eventId: event.id, userId: user.id })
+      .onConflictDoNothing();
+  }
+  revalidatePath(`/serate/${event.id}`);
+  redirect(`/serate/${event.id}?invito=accettato`);
+}
+
+export async function saveEventContribution(eventId: number, formData: FormData) {
+  const user = await requireUser();
+  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
+  if (!event || event.status === "done" || event.status === "cancelled") return;
+  const invitees = (await inviteesByEvent([eventId])).get(eventId);
+  if (!canSee(event, invitees, user)) return;
+
+  const item = String(formData.get("item") ?? "").trim().slice(0, 160);
+  if (!item) {
+    await db
+      .delete(eventContributions)
+      .where(
+        and(
+          eq(eventContributions.eventId, eventId),
+          eq(eventContributions.userId, user.id)
+        )
+      );
+  } else {
+    await db
+      .insert(eventContributions)
+      .values({ eventId, userId: user.id, item })
+      .onConflictDoUpdate({
+        target: [eventContributions.eventId, eventContributions.userId],
+        set: { item, updatedAt: new Date().toISOString() },
+      });
+  }
+  revalidatePath(`/serate/${eventId}`);
+}
+
+export async function addEventNeed(eventId: number, formData: FormData) {
+  const { event } = await canManage(eventId);
+  if (event.status === "done" || event.status === "cancelled") return;
+
+  const item = String(formData.get("item") ?? "").trim().slice(0, 80);
+  const quantity = String(formData.get("quantity") ?? "").trim().slice(0, 40) || null;
+  if (!item) return;
+
+  const existing = await db.query.eventNeeds.findMany({
+    where: eq(eventNeeds.eventId, eventId),
+  });
+  if (existing.some((need) => need.item.toLocaleLowerCase("it") === item.toLocaleLowerCase("it"))) {
+    return;
+  }
+
+  await db.insert(eventNeeds).values({ eventId, item, quantity }).onConflictDoNothing();
+  revalidatePath(`/serate/${eventId}`);
+}
+
+export async function toggleEventNeedClaim(eventId: number, needId: number) {
+  const user = await requireUser();
+  const [event, need] = await Promise.all([
+    db.query.events.findFirst({ where: eq(events.id, eventId) }),
+    db.query.eventNeeds.findFirst({
+      where: and(eq(eventNeeds.id, needId), eq(eventNeeds.eventId, eventId)),
+    }),
+  ]);
+  if (!event || !need || event.status === "done" || event.status === "cancelled") return;
+  const invitees = (await inviteesByEvent([eventId])).get(eventId);
+  if (!canSee(event, invitees, user)) return;
+
+  if (need.claimedBy === user.id) {
+    await db
+      .update(eventNeeds)
+      .set({ claimedBy: null })
+      .where(and(eq(eventNeeds.id, needId), eq(eventNeeds.claimedBy, user.id)));
+  } else if (need.claimedBy === null) {
+    await db
+      .update(eventNeeds)
+      .set({ claimedBy: user.id })
+      .where(and(eq(eventNeeds.id, needId), isNull(eventNeeds.claimedBy)));
+  }
+  revalidatePath(`/serate/${eventId}`);
+}
+
+export async function deleteEventNeed(eventId: number, needId: number) {
+  const { event } = await canManage(eventId);
+  if (event.status === "done" || event.status === "cancelled") return;
+  await db
+    .delete(eventNeeds)
+    .where(and(eq(eventNeeds.id, needId), eq(eventNeeds.eventId, eventId)));
+  revalidatePath(`/serate/${eventId}`);
 }
 
 // Un invitato propone un film in più per la rosa di una serata aperta.
@@ -683,6 +879,9 @@ export async function deleteUser(userId: number) {
   await db
     .delete(userFriends)
     .where(or(eq(userFriends.userId, userId), eq(userFriends.friendUserId, userId)));
+  await db.delete(eventContributions).where(eq(eventContributions.userId, userId));
+  await db.update(eventNeeds).set({ claimedBy: null }).where(eq(eventNeeds.claimedBy, userId));
+  await db.delete(eventInvitees).where(eq(eventInvitees.userId, userId));
   await db.delete(users).where(eq(users.id, userId));
   revalidatePath("/admin");
 }

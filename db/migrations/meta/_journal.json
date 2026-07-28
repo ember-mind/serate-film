@@ -120,6 +120,20 @@
       "when": 1785251821985,
       "tag": "0016_bored_white_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1785260729435,
+      "tag": "0017_event-invites-and-contributions",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1785262988879,
+      "tag": "0018_event-needs-checklist",
+      "breakpoints": true
     }
   ]
 }

@@ -126,6 +126,59 @@ export const eventInvitees = sqliteTable(
   (t) => [primaryKey({ columns: [t.eventId, t.userId] })]
 );
 
+// Link-capability per invitare nuovi partecipanti a una singola serata.
+// Il token è lungo e casuale: chi possiede il link può chiedere di entrare.
+export const eventInviteLinks = sqliteTable(
+  "event_invite_links",
+  {
+    eventId: integer("event_id")
+      .primaryKey()
+      .references(() => events.id),
+    token: text("token").notNull().unique(),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  }
+);
+
+// Cosa porta ciascun partecipante. Una promessa per persona, sempre modificabile
+// fino alla conclusione della serata.
+export const eventContributions = sqliteTable(
+  "event_contributions",
+  {
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => events.id),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    item: text("item").notNull(),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => [primaryKey({ columns: [t.eventId, t.userId] })]
+);
+
+// Checklist preparata dall'organizzatore. Un bisogno può essere preso in carico
+// da un solo partecipante alla volta.
+export const eventNeeds = sqliteTable(
+  "event_needs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => events.id),
+    item: text("item").notNull(),
+    quantity: text("quantity"),
+    claimedBy: integer("claimed_by").references(() => users.id),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => [uniqueIndex("event_needs_event_item_unique").on(t.eventId, t.item)]
+);
+
 export const eventDates = sqliteTable("event_dates", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   eventId: integer("event_id")
