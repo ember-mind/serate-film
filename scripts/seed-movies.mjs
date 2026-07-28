@@ -248,4 +248,32 @@ for (const [title, year, director, actors, genres] of FILMS) {
   added += res.changes;
 }
 const total = CLASSIC_FILMS.length + FILMS.length;
-console.log(`Catalogo: ${added} film aggiunti (${total - added} già presenti).`);
+
+// Applica lo snapshot internet incluso nel migration anche ai film appena inseriti
+// su un database nuovo. Le condizioni SQL non sovrascrivono sync più recenti.
+const metadataMarker = "-- Snapshot metadati film recuperato da Wikidata e YouTube.";
+const metadataMigration = fs
+  .readdirSync(path.join(process.cwd(), "db", "migrations"))
+  .filter((name) => name.endsWith(".sql"))
+  .sort()
+  .reverse()
+  .find((name) =>
+    fs
+      .readFileSync(path.join(process.cwd(), "db", "migrations", name), "utf8")
+      .includes(metadataMarker)
+  );
+if (metadataMigration) {
+  const source = fs.readFileSync(
+    path.join(process.cwd(), "db", "migrations", metadataMigration),
+    "utf8"
+  );
+  const snapshotSql = source.slice(source.indexOf(metadataMarker) + metadataMarker.length);
+  db.exec(snapshotSql);
+}
+
+const metadataTotal = db
+  .prepare("SELECT count(*) AS total FROM movies WHERE metadata_updated_at IS NOT NULL")
+  .get().total;
+console.log(
+  `Catalogo: ${added} film aggiunti (${total - added} già presenti), ${metadataTotal} con metadati internet.`
+);

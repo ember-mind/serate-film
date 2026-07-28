@@ -28,6 +28,7 @@ import { createSession, destroySession } from "@/lib/session";
 import { requireUser, requireAdmin } from "@/lib/auth";
 import { canSee, inviteesByEvent } from "@/lib/invites";
 import { sanitizeNext } from "@/lib/nav";
+import { fetchMovieMetadata } from "@/lib/movie-metadata.mjs";
 
 // ---------- auth ----------
 
@@ -78,6 +79,29 @@ export async function createMovie(_prev: { error?: string } | undefined, formDat
 
   // chi aggiunge un film a mano lo vuole quasi sempre in watchlist
   await db.insert(watchlist).values({ movieId: movie.id, addedBy: user.id }).onConflictDoNothing();
+
+  // L'arricchimento internet è best effort: il film resta valido anche se una fonte non risponde.
+  try {
+    const metadata = await fetchMovieMetadata({ title, year });
+    await db
+      .update(movies)
+      .set({
+        wikidataId: metadata.wikidataId,
+        imdbId: metadata.imdbId,
+        rottenTomatoesId: metadata.rottenTomatoesId,
+        youtubeTrailerId: metadata.youtubeTrailerId,
+        trailerTitle: metadata.trailerTitle,
+        trailerChannel: metadata.trailerChannel,
+        imdbRating: metadata.imdbRating,
+        rottenTomatoesScore: metadata.rottenTomatoesScore,
+        awards: metadata.awards.length ? JSON.stringify(metadata.awards) : null,
+        metadataUpdatedAt: metadata.metadataUpdatedAt,
+      })
+      .where(eq(movies.id, movie.id));
+  } catch (error) {
+    console.warn(`Metadati non disponibili per ${title}:`, error);
+  }
+
   revalidatePath("/film");
   revalidatePath("/watchlist");
   return {};

@@ -2,7 +2,9 @@
 
 Cinema club privato per il gruppo: catalogo film autonomo, watchlist condivisa, cineteca personale, lista amici, sondaggi data+film con approval voting, storico delle serate viste con presenti, stelline e note.
 
-Nessuna API esterna a runtime: il catalogo è nostro (SQLite), pre-caricato con oltre 200 film e ampliabile da qualunque membro. Titoli, anno, regia, cast, generi e durata restano dati locali; le immagini in `public/posters/generated/` sono artwork originali, non poster ufficiali.
+Nessuna API esterna durante la navigazione: il catalogo è nostro (SQLite), pre-caricato con oltre 300 film e ampliabile da qualunque membro. Titoli, anno, regia, cast, generi e durata restano dati locali; le immagini in `public/posters/generated/` sono artwork originali, non poster ufficiali.
+
+Le schede film includono trailer YouTube, premi vinti e valutazioni IMDb/Rotten Tomatoes. Una sincronizzazione separata recupera snapshot da Wikidata e cerca il trailer su YouTube, poi salva tutto in SQLite. I film aggiunti dall’interfaccia vengono arricchiti automaticamente; eventuali errori delle fonti non impediscono l’aggiunta.
 
 ## Stack
 
@@ -93,5 +95,6 @@ node scripts/add-movie.mjs --title "New York, New York" --year 1977 \
 - `node scripts/seed.mjs <username> <nome> <password>` — crea/aggiorna l'admin (applica anche le migrazioni)
 - `node scripts/seed-movies.mjs` — carica/aggiorna il catalogo film (idempotente)
 - `node scripts/seed-runtimes.mjs` — popola le durate del catalogo seed (idempotente)
+- `npm run metadata:sync` — completa i metadati mancanti da internet (`-- --force`, `-- --missing-trailers`, `-- --movie <id>`, `-- --limit <n>`)
 - `node scripts/add-movie.mjs` — aggiunge un singolo film / evade un suggerimento (supporta `--runtime`)
 - `npx drizzle-kit generate` — genera una nuova migrazione dopo modifiche a `db/schema.ts`

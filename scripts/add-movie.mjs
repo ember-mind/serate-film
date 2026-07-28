@@ -6,6 +6,7 @@
 import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
+import { fetchMovieMetadata } from "../lib/movie-metadata.mjs";
 
 const args = {};
 const argv = process.argv.slice(2);
@@ -57,4 +58,46 @@ if (args.suggestion && movieId) {
     .prepare("UPDATE suggestions SET status = 'added', movie_id = ? WHERE id = ?")
     .run(movieId, Number(args.suggestion));
   console.log(s.changes > 0 ? `Suggerimento ${args.suggestion} evaso.` : `Suggerimento ${args.suggestion} non trovato.`);
+}
+
+if (movieId) {
+  try {
+    const metadata = await fetchMovieMetadata({
+      title: args.title,
+      year: args.year ? Number(args.year) : null,
+    });
+    db.prepare(
+      `UPDATE movies SET
+        wikidata_id = ?,
+        imdb_id = ?,
+        rotten_tomatoes_id = ?,
+        youtube_trailer_id = ?,
+        trailer_title = ?,
+        trailer_channel = ?,
+        imdb_rating = ?,
+        rotten_tomatoes_score = ?,
+        awards = ?,
+        metadata_updated_at = ?
+      WHERE id = ?`
+    ).run(
+      metadata.wikidataId,
+      metadata.imdbId,
+      metadata.rottenTomatoesId,
+      metadata.youtubeTrailerId,
+      metadata.trailerTitle,
+      metadata.trailerChannel,
+      metadata.imdbRating,
+      metadata.rottenTomatoesScore,
+      metadata.awards.length ? JSON.stringify(metadata.awards) : null,
+      metadata.metadataUpdatedAt,
+      movieId
+    );
+    console.log(
+      `Metadati internet: trailer ${metadata.youtubeTrailerId ? "sì" : "no"}, rating ${
+        metadata.imdbRating ?? "—"
+      } / ${metadata.rottenTomatoesScore ?? "—"}, premi ${metadata.awards.length}.`
+    );
+  } catch (error) {
+    console.warn(`Metadati internet non disponibili: ${error.message}`);
+  }
 }

@@ -30,6 +30,18 @@ _Avoid_: invitato, quando si descrive chi era davvero presente.
 
 _Avoid_: recensione, voto, quando si intende l’insieme completo.
 
+**Valutazione esterna**: fotografia datata del giudizio pubblicato da un servizio cinematografico, come IMDb o Rotten Tomatoes. Non è una pagella del club.
+
+_Avoid_: voto, quando la fonte non è esplicitata.
+
+**Premio**: riconoscimento vinto dal film. Una candidatura senza vittoria non è un premio.
+
+_Avoid_: nomination, candidatura.
+
+**Trailer**: anteprima video associata al film e riprodotta da YouTube nella sua scheda.
+
+_Avoid_: clip, filmato.
+
 **Mi piace**: apprezzamento che un membro esprime per il commento nella pagella di un altro membro. Non può essere dato alla propria pagella.
 
 _Avoid_: reazione, cuore.

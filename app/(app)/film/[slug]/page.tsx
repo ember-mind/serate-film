@@ -16,8 +16,28 @@ import { getBeforeWatchingNotes } from "@/lib/before-watching";
 import { directorSlug, parseDirectors } from "@/lib/directors";
 import { filmSlug } from "@/lib/films";
 import { getPersonalMovieStatuses } from "@/lib/personal-movies";
+import { TrailerPlayer } from "@/components/TrailerPlayer";
 
 export const dynamic = "force-dynamic";
+
+function parseAwards(value: string | null): string[] {
+  if (!value) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    const priority = (award: string) =>
+      /oscar|palma d.oro|leone d.oro|orso d.oro|golden globe|bafta|césar|david di donatello/i.test(
+        award
+      )
+        ? 0
+        : 1;
+    return parsed
+      .filter((award): award is string => typeof award === "string")
+      .sort((a, b) => priority(a) - priority(b) || a.localeCompare(b, "it"));
+  } catch {
+    return [];
+  }
+}
 
 export default async function FilmPage({ params }: { params: Promise<{ slug: string }> }) {
   const user = await requireUser();
@@ -32,6 +52,15 @@ export default async function FilmPage({ params }: { params: Promise<{ slug: str
   const state = !wl || wl.status === "removed" ? "none" : wl.status;
   const personal = (await getPersonalMovieStatuses(user.id)).get(movie.id);
   const beforeWatchingNotes = getBeforeWatchingNotes(movie);
+  const awards = parseAwards(movie.awards);
+  const hasExternalRatings = Boolean(movie.imdbRating || movie.rottenTomatoesScore);
+  const metadataDate = movie.metadataUpdatedAt
+    ? new Intl.DateTimeFormat("it-IT", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(movie.metadataUpdatedAt))
+    : null;
 
   return (
     <div>
@@ -107,6 +136,119 @@ export default async function FilmPage({ params }: { params: Promise<{ slug: str
               </p>
             )}
           </dl>
+
+          {(hasExternalRatings || awards.length > 0) && (
+            <section
+              aria-labelledby="external-metadata-title"
+              className="mt-6 border-t border-riga pt-5"
+            >
+              <h2 id="external-metadata-title" className="eyebrow mb-3">
+                Valutazioni esterne
+              </h2>
+              {hasExternalRatings && (
+                <div className="flex flex-wrap gap-3">
+                  {movie.imdbRating && (
+                    <a
+                      href={
+                        movie.imdbId
+                          ? `https://www.imdb.com/title/${encodeURIComponent(movie.imdbId)}/`
+                          : "https://www.imdb.com/"
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      className="min-w-32 rounded-sm border border-riga bg-sipario-chiaro/30 px-4 py-3 transition-colors hover:border-proiettore/60"
+                    >
+                      <span className="block font-mono text-[10px] uppercase tracking-[0.16em] text-fumo">
+                        IMDb
+                      </span>
+                      <strong className="mt-1 block font-mono text-xl font-normal text-proiettore">
+                        {movie.imdbRating}
+                      </strong>
+                    </a>
+                  )}
+                  {movie.rottenTomatoesScore && (
+                    <a
+                      href={
+                        movie.rottenTomatoesId
+                          ? `https://www.rottentomatoes.com/${movie.rottenTomatoesId
+                              .split("/")
+                              .map(encodeURIComponent)
+                              .join("/")}`
+                          : "https://www.rottentomatoes.com/"
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      className="min-w-32 rounded-sm border border-riga bg-sipario-chiaro/30 px-4 py-3 transition-colors hover:border-proiettore/60"
+                    >
+                      <span className="block font-mono text-[10px] uppercase tracking-[0.16em] text-fumo">
+                        Rotten Tomatoes
+                      </span>
+                      <strong className="mt-1 block font-mono text-xl font-normal text-proiettore">
+                        {movie.rottenTomatoesScore}
+                      </strong>
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {awards.length > 0 && (
+                <div className={hasExternalRatings ? "mt-5" : ""}>
+                  <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-proiettore">
+                    {awards.length === 1 ? "Premio vinto" : `${awards.length} premi vinti`}
+                  </h3>
+                  <ul className="mt-2 flex flex-wrap gap-2">
+                    {awards.slice(0, 6).map((award) => (
+                      <li
+                        key={award}
+                        className="rounded-full border border-riga px-3 py-1.5 text-xs leading-relaxed text-schermo/85"
+                      >
+                        {award}
+                      </li>
+                    ))}
+                  </ul>
+                  {awards.length > 6 && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.14em] text-fumo transition-colors hover:text-proiettore">
+                        Mostra altri {awards.length - 6}
+                      </summary>
+                      <ul className="mt-2 flex flex-wrap gap-2">
+                        {awards.slice(6).map((award) => (
+                          <li
+                            key={award}
+                            className="rounded-full border border-riga px-3 py-1.5 text-xs leading-relaxed text-schermo/85"
+                          >
+                            {award}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+              )}
+
+              {movie.wikidataId && (
+                <p className="mt-4 font-mono text-[9px] uppercase tracking-[0.13em] text-fumo/60">
+                  {metadataDate ? `Aggiornati il ${metadataDate} · ` : ""}
+                  <a
+                    href={`https://www.wikidata.org/wiki/${encodeURIComponent(movie.wikidataId)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="transition-colors hover:text-proiettore"
+                  >
+                    Dati Wikidata ↗
+                  </a>
+                </p>
+              )}
+            </section>
+          )}
+
+          {movie.youtubeTrailerId && (
+            <TrailerPlayer
+              videoId={movie.youtubeTrailerId}
+              title={movie.trailerTitle}
+              channel={movie.trailerChannel}
+            />
+          )}
 
           {movie.synopsis && (
             <div className="mt-6 border-t border-riga pt-5">

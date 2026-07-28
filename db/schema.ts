@@ -29,7 +29,8 @@ export const userFriends = sqliteTable(
   (t) => [primaryKey({ columns: [t.userId, t.friendUserId] })]
 );
 
-// Catalogo nostro: fatti puri (titolo, anno, regista, attori). Niente API esterne.
+// Catalogo nostro: dati editoriali locali + snapshot di metadati esterni.
+// La navigazione legge sempre SQLite; l'aggiornamento internet è separato.
 export const movies = sqliteTable(
   "movies",
   {
@@ -44,6 +45,16 @@ export const movies = sqliteTable(
     posterCredit: text("poster_credit"), // "Autore, Licenza" per attribuzione CC
     synopsis: text("synopsis"), // incipit da it.wikipedia, 2-3 frasi (fetch-synopses.mjs)
     synopsisSource: text("synopsis_source"), // URL della voce, per attribuzione CC BY-SA
+    wikidataId: text("wikidata_id"),
+    imdbId: text("imdb_id"),
+    rottenTomatoesId: text("rotten_tomatoes_id"),
+    youtubeTrailerId: text("youtube_trailer_id"),
+    trailerTitle: text("trailer_title"),
+    trailerChannel: text("trailer_channel"),
+    imdbRating: text("imdb_rating"), // valore sorgente, per esempio "8.8/10"
+    rottenTomatoesScore: text("rotten_tomatoes_score"), // Tomatometer, per esempio "87%"
+    awards: text("awards"), // array JSON dei premi vinti, etichette Wikidata
+    metadataUpdatedAt: text("metadata_updated_at"),
     addedBy: integer("added_by").references(() => users.id), // null = seed iniziale
   },
   (t) => [uniqueIndex("movies_title_year_unique").on(t.title, t.year)]
