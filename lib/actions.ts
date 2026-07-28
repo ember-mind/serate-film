@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "@/db";
 import {
   users,
@@ -19,6 +19,8 @@ import {
   runoffVotes,
   attendance,
   ratings,
+  reviewLikes,
+  notifications,
   suggestions,
   userSeenMovies,
 } from "@/db/schema";
@@ -494,8 +496,107 @@ export async function rateEvent(eventId: number, formData: FormData) {
       target: [ratings.eventId, ratings.userId],
       set: { stars, comment },
     });
+  if (!comment) {
+    await db
+      .delete(reviewLikes)
+      .where(and(eq(reviewLikes.eventId, eventId), eq(reviewLikes.reviewUserId, user.id)));
+    await db
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.type, "review_like"),
+          eq(notifications.eventId, eventId),
+          eq(notifications.userId, user.id)
+        )
+      );
+  }
   revalidatePath(`/serate/${eventId}`);
   revalidatePath("/storico");
+}
+
+export async function toggleReviewLike(eventId: number, reviewUserId: number) {
+  const user = await requireUser();
+  if (!Number.isInteger(eventId) || !Number.isInteger(reviewUserId) || reviewUserId === user.id) {
+    return;
+  }
+
+  const [event, review] = await Promise.all([
+    db.query.events.findFirst({ where: eq(events.id, eventId) }),
+    db.query.ratings.findFirst({
+      where: and(eq(ratings.eventId, eventId), eq(ratings.userId, reviewUserId)),
+    }),
+  ]);
+  if (!event || event.status !== "done" || !review?.comment) return;
+
+  const invitees = (await inviteesByEvent([eventId])).get(eventId);
+  if (!canSee(event, invitees, user)) return;
+
+  const existing = await db.query.reviewLikes.findFirst({
+    where: and(
+      eq(reviewLikes.eventId, eventId),
+      eq(reviewLikes.reviewUserId, reviewUserId),
+      eq(reviewLikes.userId, user.id)
+    ),
+  });
+
+  db.transaction((tx) => {
+    if (existing) {
+      tx.delete(reviewLikes)
+        .where(
+          and(
+            eq(reviewLikes.eventId, eventId),
+            eq(reviewLikes.reviewUserId, reviewUserId),
+            eq(reviewLikes.userId, user.id)
+          )
+        )
+        .run();
+      tx.delete(notifications)
+        .where(
+          and(
+            eq(notifications.type, "review_like"),
+            eq(notifications.eventId, eventId),
+            eq(notifications.userId, reviewUserId),
+            eq(notifications.actorUserId, user.id)
+          )
+        )
+        .run();
+    } else {
+      tx.insert(reviewLikes)
+        .values({ eventId, reviewUserId, userId: user.id })
+        .run();
+      tx.insert(notifications)
+        .values({
+          userId: reviewUserId,
+          actorUserId: user.id,
+          type: "review_like",
+          eventId,
+        })
+        .onConflictDoUpdate({
+          target: [
+            notifications.userId,
+            notifications.actorUserId,
+            notifications.type,
+            notifications.eventId,
+          ],
+          set: { readAt: null, createdAt: new Date().toISOString() },
+        })
+        .run();
+    }
+  });
+
+  revalidatePath(`/serate/${eventId}`);
+  revalidatePath("/notifiche");
+}
+
+export async function openNotifications() {
+  const user = await requireUser();
+  await db
+    .update(notifications)
+    .set({ readAt: new Date().toISOString() })
+    .where(and(eq(notifications.userId, user.id), isNull(notifications.readAt)));
+  revalidatePath("/", "layout");
+  revalidatePath("/notifiche");
+  redirect("/notifiche");
 }
 
 export async function saveEventNotes(eventId: number, formData: FormData) {
@@ -547,6 +648,12 @@ export async function deleteUser(userId: number) {
   const attended = await db.query.attendance.findFirst({ where: eq(attendance.userId, userId) });
   if (voted || attended) return; // storico da preservare: non si elimina
   await db.delete(movieVotes).where(eq(movieVotes.userId, userId));
+  await db
+    .delete(reviewLikes)
+    .where(or(eq(reviewLikes.userId, userId), eq(reviewLikes.reviewUserId, userId)));
+  await db
+    .delete(notifications)
+    .where(or(eq(notifications.userId, userId), eq(notifications.actorUserId, userId)));
   await db.delete(ratings).where(eq(ratings.userId, userId));
   await db.delete(userSeenMovies).where(eq(userSeenMovies.userId, userId));
   await db

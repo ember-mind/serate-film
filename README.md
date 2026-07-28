@@ -34,7 +34,8 @@ npm run seed:demo
 ```
 
 Crea quattro account `demo*` con password `cinema123`, due amici salvati, sei film in
-watchlist e una serata visibile solo a Demo, Alice Demo e Bruno Demo.
+watchlist, una serata da votare e una già vista con pagelle. Alice Demo parte con una notifica
+in sospeso, così campana e pagina notifiche sono subito verificabili.
 
 ## Come funziona una serata
 
@@ -60,6 +61,13 @@ Ogni membro mantiene la propria lista su `/io/amici`: è una scorciatoia persona
 richieste da accettare e senza obbligo di reciprocità. Una nuova serata è visibile di default
 al creatore e ai suoi amici. Durante la creazione si possono invece scegliere persone diverse
 oppure aprire esplicitamente la serata a tutto il club.
+
+## Pagelle e notifiche
+
+Dopo una serata vista, ogni partecipante può lasciare stelle e commento. Gli altri membri
+possono mettere **Mi piace** al commento, ma non alla propria pagella. L’autore riceve una
+notifica in-app: la campana nell’intestazione si illumina e mostra quante notifiche sono ancora
+in sospeso. Aprendo la campana, le notifiche vengono segnate come lette.
 
 ## Deploy (Coolify)
 

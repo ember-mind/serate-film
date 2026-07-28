@@ -12,6 +12,7 @@ import {
   movieVotes,
   runoffVotes,
   ratings,
+  reviewLikes,
   users,
 } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
@@ -25,6 +26,7 @@ import {
   startRunoff,
   submitRunoffVote,
   submitVotes,
+  toggleReviewLike,
 } from "@/lib/actions";
 import { canSee, inviteesByEvent } from "@/lib/invites";
 import { Poster } from "@/components/Poster";
@@ -141,6 +143,10 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
 
   const att = await db.query.attendance.findMany({ where: eq(attendance.eventId, eventId) });
   const rats = await db.query.ratings.findMany({ where: eq(ratings.eventId, eventId) });
+  const likes =
+    event.status === "done"
+      ? await db.query.reviewLikes.findMany({ where: eq(reviewLikes.eventId, eventId) })
+      : [];
 
   // suggerimenti chiusura: data più disponibile, film più approvato
   const bestDate = [...dates].sort(
@@ -641,21 +647,54 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
             </div>
           </section>
 
-          <section aria-labelledby="stelline">
+          <section id="pagelle" aria-labelledby="stelline">
             <p className="step-title mb-3" id="stelline">
               Le pagelle
             </p>
             {rats.length > 0 && (
               <ul className="mb-4 flex flex-col gap-2">
-                {rats.map((r) => (
-                  <li key={r.userId} className="ticket flex items-start justify-between gap-3 p-3">
-                    <div>
-                      <p className="text-sm font-semibold">{nameOf(r.userId)}</p>
-                      {r.comment && <p className="mt-0.5 text-sm text-schermo/80">{r.comment}</p>}
-                    </div>
-                    <Stars value={r.stars} small />
-                  </li>
-                ))}
+                {rats.map((r) => {
+                  const reviewLikesForUser = likes.filter((like) => like.reviewUserId === r.userId);
+                  const likedByMe = reviewLikesForUser.some((like) => like.userId === user.id);
+                  const likeCount = reviewLikesForUser.length;
+
+                  return (
+                    <li key={r.userId} className="ticket p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-semibold">{nameOf(r.userId)}</p>
+                        <Stars value={r.stars} small />
+                      </div>
+                      {r.comment && (
+                        <>
+                          <p className="mt-1 text-sm text-schermo/80">{r.comment}</p>
+                          <div className="mt-2">
+                            {r.userId !== user.id ? (
+                              <form action={toggleReviewLike.bind(null, eventId, r.userId)}>
+                                <button
+                                  aria-label={`${likedByMe ? "Togli Mi piace da" : "Metti Mi piace a"} questa pagella`}
+                                  className={`rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors ${
+                                    likedByMe
+                                      ? "border-proiettore bg-proiettore/10 text-proiettore"
+                                      : "border-riga text-fumo hover:border-proiettore hover:text-proiettore"
+                                  }`}
+                                >
+                                  {likedByMe ? "♥ Ti piace" : "♡ Mi piace"}
+                                  {likeCount > 0 && ` · ${likeCount}`}
+                                </button>
+                              </form>
+                            ) : (
+                              likeCount > 0 && (
+                                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-proiettore">
+                                  ♥ {likeCount} Mi piace
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
             {att.some((a) => a.userId === user.id) && (

@@ -85,6 +85,63 @@ const seed = sqlite.transaction(() => {
     addInvitee.run(eventId, ids["demo-alice"]);
     addInvitee.run(eventId, ids["demo-bruno"]);
   }
+
+  const watchedEvent =
+    sqlite
+      .prepare("SELECT id FROM events WHERE title = '[Demo] Serata già vista'")
+      .get() ??
+    sqlite
+      .prepare(
+        "INSERT INTO events (title, status, created_by, chosen_date, chosen_movie_id) VALUES (?, 'done', ?, ?, ?)"
+      )
+      .run(
+        "[Demo] Serata già vista",
+        ids.demo,
+        new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10),
+        sampleMovies[0].id
+      );
+  const watchedEventId = Number(watchedEvent.id ?? watchedEvent.lastInsertRowid);
+  sqlite
+    .prepare(
+      "UPDATE events SET status = 'done', chosen_movie_id = ? WHERE id = ?"
+    )
+    .run(sampleMovies[0].id, watchedEventId);
+  sqlite
+    .prepare("INSERT OR IGNORE INTO event_movies (event_id, movie_id) VALUES (?, ?)")
+    .run(watchedEventId, sampleMovies[0].id);
+  const addAttendance = sqlite.prepare(
+    "INSERT OR IGNORE INTO attendance (event_id, user_id) VALUES (?, ?)"
+  );
+  addAttendance.run(watchedEventId, ids.demo);
+  addAttendance.run(watchedEventId, ids["demo-alice"]);
+  const addRating = sqlite.prepare(`
+    INSERT INTO ratings (event_id, user_id, stars, comment)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(event_id, user_id) DO UPDATE SET
+      stars = excluded.stars,
+      comment = excluded.comment
+  `);
+  addRating.run(watchedEventId, ids.demo, 4, "Gran ritmo, finale memorabile.");
+  addRating.run(
+    watchedEventId,
+    ids["demo-alice"],
+    5,
+    "Mi è rimasto addosso anche il giorno dopo."
+  );
+  sqlite
+    .prepare(
+      "INSERT OR IGNORE INTO review_likes (event_id, review_user_id, user_id) VALUES (?, ?, ?)"
+    )
+    .run(watchedEventId, ids["demo-alice"], ids.demo);
+  sqlite
+    .prepare(`
+      INSERT INTO notifications (user_id, actor_user_id, type, event_id)
+      VALUES (?, ?, 'review_like', ?)
+      ON CONFLICT(user_id, actor_user_id, type, event_id) DO UPDATE SET
+        read_at = NULL,
+        created_at = datetime('now')
+    `)
+    .run(ids["demo-alice"], ids.demo, watchedEventId);
 });
 
 seed();

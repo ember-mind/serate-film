@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { NotificationBell } from "@/components/NotificationBell";
 
 type NavItem = {
   href: string;
@@ -24,7 +25,15 @@ const mobileItems: NavItem[] = [
   { href: "/io", label: "Io", paths: ["/io", "/admin"] },
 ];
 
-export function Nav({ isAdmin, userName }: { isAdmin: boolean; userName: string }) {
+export function Nav({
+  isAdmin,
+  userName,
+  unreadNotifications,
+}: {
+  isAdmin: boolean;
+  userName: string;
+  unreadNotifications: number;
+}) {
   const pathname = usePathname();
   const desktopLinks = isAdmin
     ? [...desktopItems, { href: "/admin", label: "Regia", paths: ["/admin"] }]
@@ -57,7 +66,10 @@ export function Nav({ isAdmin, userName }: { isAdmin: boolean; userName: string 
               </Link>
             ))}
           </nav>
-          <span className="eyebrow hidden sm:block">{userName}</span>
+          <div className="flex items-center gap-3">
+            <NotificationBell initialCount={unreadNotifications} />
+            <span className="eyebrow hidden sm:block">{userName}</span>
+          </div>
         </div>
       </header>
 

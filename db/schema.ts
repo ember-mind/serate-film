@@ -206,6 +206,56 @@ export const ratings = sqliteTable(
   (t) => [primaryKey({ columns: [t.eventId, t.userId] })]
 );
 
+// Apprezzamenti sui commenti delle pagelle. Un membro non può duplicare il proprio like.
+export const reviewLikes = sqliteTable(
+  "review_likes",
+  {
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => events.id),
+    reviewUserId: integer("review_user_id")
+      .notNull()
+      .references(() => users.id),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => [primaryKey({ columns: [t.eventId, t.reviewUserId, t.userId] })]
+);
+
+// Avvisi personali in-app. readAt nullo = notifica ancora in sospeso.
+export const notifications = sqliteTable(
+  "notifications",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    actorUserId: integer("actor_user_id")
+      .notNull()
+      .references(() => users.id),
+    type: text("type", { enum: ["review_like"] }).notNull(),
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => events.id),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    readAt: text("read_at"),
+  },
+  (t) => [
+    uniqueIndex("notifications_review_like_unique").on(
+      t.userId,
+      t.actorUserId,
+      t.type,
+      t.eventId
+    ),
+  ]
+);
+
 // Film segnati manualmente come visti da un membro.
 // Le visioni fatte col club restano derivate da attendance + events:
 // così una correzione delle presenze aggiorna automaticamente anche la cineteca personale.
