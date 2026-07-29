@@ -204,6 +204,21 @@ const FILMS = [
   ["Past Lives", 2023, "Celine Song", "Greta Lee, Teo Yoo", "Drammatico, Romantico"],
   ["C'è ancora domani", 2023, "Paola Cortellesi", "Paola Cortellesi, Valerio Mastandrea", "Drammatico, Commedia"],
   ["Io capitano", 2023, "Matteo Garrone", "Seydou Sarr, Moustapha Fall", "Drammatico"],
+  ["Dogman", 2023, "Luc Besson", "Caleb Landry Jones, Jojo T. Gibbs, Christopher Denham, Clemens Schick, Grace Palma", "Drammatico, Thriller",
+    114,
+    "Fermato dalla polizia mentre guida un camion pieno di cani, Douglas racconta a una psichiatra una vita segnata dalla violenza familiare e da un legame straordinario con gli animali. Sopravvissuto grazie a loro, costruisce nel tempo una comunità fuori dal mondo, tra rifugio, teatro e ricerca di riscatto.",
+    "https://it.wikipedia.org/wiki/Dogman_(film_2023)",
+    "Q113005247",
+    "tt17009348",
+    "m/dogman_2023",
+    "F8mO1bOa1CM",
+    "DOGMAN (2023) Nuovo Trailer ITA del Film di Luc Besson con Caleb Landry Jones #Venezia80",
+    "FilmIsNow Trailer Italia",
+    null,
+    "56%",
+    null,
+    "2026-07-29T18:26:25.073Z",
+  ],
   ["The Holdovers - Lezioni di vita", 2023, "Alexander Payne", "Paul Giamatti, Da'Vine Joy Randolph", "Commedia, Drammatico"],
   ["Dune - Parte due", 2024, "Denis Villeneuve", "Timothée Chalamet, Zendaya, Austin Butler", "Fantascienza"],
   ["The Brutalist", 2024, "Brady Corbet", "Adrien Brody, Guy Pearce, Felicity Jones", "Drammatico"],
@@ -233,7 +248,11 @@ db.pragma("journal_mode = WAL");
 migrate(drizzle(db), { migrationsFolder: path.join(process.cwd(), "db", "migrations") });
 
 const insert = db.prepare(
-  "INSERT OR IGNORE INTO movies (title, year, director, actors, genres) VALUES (?, ?, ?, ?, ?)"
+  `INSERT OR IGNORE INTO movies (
+    title, year, director, actors, genres, runtime, synopsis, synopsis_source,
+    wikidata_id, imdb_id, rotten_tomatoes_id, youtube_trailer_id, trailer_title,
+    trailer_channel, imdb_rating, rotten_tomatoes_score, awards, metadata_updated_at
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 );
 const insertClassic = db.prepare(
   "INSERT OR IGNORE INTO movies (title, year, director, actors, genres, runtime, synopsis, synopsis_source) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)"
@@ -243,8 +262,46 @@ for (const { title, year, director, actors, genres, runtime, synopsis } of CLASS
   const res = insertClassic.run(title, year, director || null, actors || null, genres || null, runtime, synopsis);
   added += res.changes;
 }
-for (const [title, year, director, actors, genres] of FILMS) {
-  const res = insert.run(title, year, director || null, actors || null, genres || null);
+for (const [
+  title,
+  year,
+  director,
+  actors,
+  genres,
+  runtime,
+  synopsis,
+  synopsisSource,
+  wikidataId,
+  imdbId,
+  rottenTomatoesId,
+  youtubeTrailerId,
+  trailerTitle,
+  trailerChannel,
+  imdbRating,
+  rottenTomatoesScore,
+  awards,
+  metadataUpdatedAt,
+] of FILMS) {
+  const res = insert.run(
+    title,
+    year,
+    director || null,
+    actors || null,
+    genres || null,
+    runtime || null,
+    synopsis || null,
+    synopsisSource || null,
+    wikidataId || null,
+    imdbId || null,
+    rottenTomatoesId || null,
+    youtubeTrailerId || null,
+    trailerTitle || null,
+    trailerChannel || null,
+    imdbRating || null,
+    rottenTomatoesScore || null,
+    awards || null,
+    metadataUpdatedAt || null
+  );
   added += res.changes;
 }
 const total = CLASSIC_FILMS.length + FILMS.length;

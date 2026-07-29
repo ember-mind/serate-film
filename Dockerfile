@@ -20,6 +20,7 @@ COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 COPY --from=build /app/db/migrations ./db/migrations
 COPY --from=build /app/scripts ./scripts
+COPY --from=build /app/lib/movie-metadata.mjs ./lib/movie-metadata.mjs
 # Gli script di seed girano fuori dal bundle Next: servono questi moduli espliciti.
 COPY --from=build /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
 COPY --from=build /app/node_modules/bcryptjs ./node_modules/bcryptjs

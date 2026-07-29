@@ -1036,3 +1036,8 @@ Built-in image generator, one distinct request per director. Shared direction: s
 
 - Output: `public/directors/generated/robert-eggers.webp`
 - Film cues: Nosferatu (2024); 1838 gothic window, snowbound German roofs, candle, elongated vampire shadow.
+
+## Luc Besson
+
+- Output: `public/directors/generated/luc-besson.webp`
+- Film cues: Dogman (2023); midnight-blue and red studio light, abstract science-fiction panels, distant yellow taxi, potted plant, protective dog silhouettes.

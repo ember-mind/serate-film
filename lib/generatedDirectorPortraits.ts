@@ -115,6 +115,7 @@ const GENERATED_DIRECTOR_PORTRAITS: Record<string, string> = {
   "Lana e Lilly Wachowski": "/directors/generated/lana-e-lilly-wachowski.webp",
   "Larry Charles": "/directors/generated/larry-charles.webp",
   "Lee Unkrich": "/directors/generated/lee-unkrich.webp",
+  "Luc Besson": "/directors/generated/luc-besson.webp",
   "Luca Guadagnino": "/directors/generated/luca-guadagnino.webp",
   "Luca Miniero": "/directors/generated/luca-miniero.webp",
   "Luchino Visconti": "/directors/generated/luchino-visconti.webp",

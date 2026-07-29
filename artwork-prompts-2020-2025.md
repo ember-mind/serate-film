@@ -362,6 +362,18 @@ Style: realistic epic journey cinematography with restrained poetic symbolism, w
 Mood and palette: desert gold, cobalt sea, black night, faint dawn white; hope, migration, exploitation, courage, responsibility.
 Constraints: no people or actor likeness, no bodies, no violence, no stereotyped imagery, no national flags, no readable markings, no logo, no title, no typography, no watermark.
 
+## 2023 — Dogman
+
+Output: `public/posters/generated/2023-dogman.webp`
+
+Use case: photorealistic-natural
+Asset type: original cinematic website film artwork, landscape 16:9
+Primary request: Create film-recognizable original key art inspired by the themes and story of "Dogman" (2023), directed by Luc Besson, without reproducing official marketing, film frames, actor likenesses, costumes, or production design.
+Scene and subject: a dark rain-soaked cabaret dressing room opens toward a cold alley; an empty vintage wheelchair faces a bulb-lit mirror, with a blond wig, sequined glove and red rose on the table, while a varied pack of calm dogs gathers protectively around the chair and an empty metal cage.
+Style: polished realistic cinematic photography, dark modern fable, elegant editorial key art, restrained fine film grain, tactile rain, velvet, metal, fur and mirror glass.
+Mood and palette: warm theatrical amber against midnight blue rain, wet charcoal, faded burgundy and one red accent; wounded dignity, chosen family, transformation, loneliness and salvation through dogs.
+Constraints: no people or human silhouettes, no actor likenesses, no violence, no suffering or aggressive animals, no copied poster composition, no logo, no title, no typography, no watermark.
+
 ## 2023 — The Holdovers - Lezioni di vita
 
 Output: `public/posters/generated/2023-the-holdovers-lezioni-di-vita.webp`

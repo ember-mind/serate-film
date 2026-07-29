@@ -657,6 +657,22 @@
     "biographySource": "https://it.wikipedia.org/wiki/Bryan_Cranston",
     "wikidataSource": "https://www.wikidata.org/wiki/Q23547"
   },
+  "Caleb Landry Jones": {
+    "name": "Caleb Landry Jones",
+    "wikidataId": "Q920607",
+    "description": "Caleb Landry Jones (Garland, 7 dicembre 1989) è un attore e cantante statunitense.",
+    "birthDate": "7 dicembre 1989",
+    "deathDate": null,
+    "birthPlace": "Garland",
+    "citizenship": [
+      "Stati Uniti"
+    ],
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Caleb_Landry_Jones_-_Dracula.jpg/960px-Caleb_Landry_Jones_-_Dracula.jpg",
+    "imageCredit": "Kevin Paul — CC BY 4.0",
+    "imageSource": "https://commons.wikimedia.org/wiki/File:Caleb_Landry_Jones_-_Dracula.jpg",
+    "biographySource": "https://it.wikipedia.org/wiki/Caleb_Landry_Jones",
+    "wikidataSource": "https://www.wikidata.org/wiki/Q920607"
+  },
   "Carey Mulligan": {
     "name": "Carey Mulligan",
     "wikidataId": "Q219655",
@@ -902,6 +918,19 @@
     "biographySource": "https://it.wikipedia.org/wiki/Christian_Friedel",
     "wikidataSource": "https://www.wikidata.org/wiki/Q1079558"
   },
+  "Christopher Denham": {
+    "name": "Christopher Denham",
+    "wikidataId": "Q549017",
+    "description": "Christopher Denham è un attore e regista statunitense.",
+    "birthDate": null,
+    "deathDate": null,
+    "birthPlace": "Blue Island",
+    "citizenship": [
+      "Stati Uniti"
+    ],
+    "biographySource": "https://it.wikipedia.org/wiki/Christopher_Denham",
+    "wikidataSource": "https://www.wikidata.org/wiki/Q549017"
+  },
   "Christoph Waltz": {
     "name": "Christoph Waltz",
     "wikidataId": "Q76819",
@@ -967,6 +996,22 @@
     "imageSource": "https://commons.wikimedia.org/wiki/File:Claudio_Santamaria_2015.jpg",
     "biographySource": "https://it.wikipedia.org/wiki/Claudio_Santamaria",
     "wikidataSource": "https://www.wikidata.org/wiki/Q959138"
+  },
+  "Clemens Schick": {
+    "name": "Clemens Schick",
+    "wikidataId": "Q1100074",
+    "description": "Clemens Schick (Tubinga, 15 febbraio 1972) è un attore tedesco.",
+    "birthDate": "15 febbraio 1972",
+    "deathDate": null,
+    "birthPlace": "Tubinga",
+    "citizenship": [
+      "Germania"
+    ],
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/ClemensSchick1.jpg/960px-ClemensSchick1.jpg",
+    "imageCredit": "Clemens Schick — CC BY-SA 4.0",
+    "imageSource": "https://commons.wikimedia.org/wiki/File:ClemensSchick1.jpg",
+    "biographySource": "https://it.wikipedia.org/wiki/Clemens_Schick",
+    "wikidataSource": "https://www.wikidata.org/wiki/Q1100074"
   },
   "Clint Eastwood": {
     "name": "Clint Eastwood",
@@ -1847,6 +1892,11 @@
     "biographySource": "https://it.wikipedia.org/wiki/Giuseppe_De_Domenico",
     "wikidataSource": "https://www.wikidata.org/wiki/Q134397020"
   },
+  "Grace Palma": {
+    "name": "Grace Palma",
+    "description": "Grace Palma è un'attrice nota per il ruolo di Salma Bailey in Dogman (2023).",
+    "biographySource": "https://www.imdb.com/name/nm9452910/"
+  },
   "Greta Lee": {
     "name": "Greta Lee",
     "wikidataId": "Q19517962",
@@ -2567,6 +2617,22 @@
     "imageSource": "https://commons.wikimedia.org/wiki/File:Johnny_Depp_2020.jpg",
     "biographySource": "https://it.wikipedia.org/wiki/Johnny_Depp",
     "wikidataSource": "https://www.wikidata.org/wiki/Q37175"
+  },
+  "Jojo T. Gibbs": {
+    "name": "Jojo T. Gibbs",
+    "wikidataId": "Q96741403",
+    "description": "Jonica \"Jojo\" T. Gibbs è un'attrice e comica statunitense, protagonista della serie Twenties.",
+    "birthDate": null,
+    "deathDate": null,
+    "birthPlace": "Gaffney",
+    "citizenship": [
+      "Stati Uniti"
+    ],
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/69/JojoTGibbs.jpg",
+    "imageCredit": "Jtgibbs89 — CC BY-SA 4.0",
+    "imageSource": "https://commons.wikimedia.org/wiki/File:JojoTGibbs.jpg",
+    "biographySource": "https://en.wikipedia.org/wiki/Jonica_T._Gibbs",
+    "wikidataSource": "https://www.wikidata.org/wiki/Q96741403"
   },
   "Jonah Hill": {
     "name": "Jonah Hill",

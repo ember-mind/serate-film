@@ -295,6 +295,7 @@ const GENERATED_POSTERS: Record<string, string> = {
   "2023\u0000Past Lives": "/posters/generated/2023-past-lives.webp",
   "2023\u0000C'è ancora domani": "/posters/generated/2023-c-e-ancora-domani.webp",
   "2023\u0000Io capitano": "/posters/generated/2023-io-capitano.webp",
+  "2023\u0000Dogman": "/posters/generated/2023-dogman.webp",
   "2023\u0000The Holdovers - Lezioni di vita": "/posters/generated/2023-the-holdovers-lezioni-di-vita.webp",
   "2024\u0000Dune - Parte due": "/posters/generated/2024-dune-parte-due.webp",
   "2024\u0000The Brutalist": "/posters/generated/2024-the-brutalist.webp",
