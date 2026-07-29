@@ -211,9 +211,9 @@ const FILMS = [
     "Q113005247",
     "tt17009348",
     "m/dogman_2023",
-    "F8mO1bOa1CM",
-    "DOGMAN (2023) Nuovo Trailer ITA del Film di Luc Besson con Caleb Landry Jones #Venezia80",
-    "FilmIsNow Trailer Italia",
+    "s1KIAfuH2vU",
+    "Dogman di Luc Besson con Caleb Landry Jones in concorso a Venezia 80 | Trailer ufficiale ITA HD",
+    "Lucky Red",
     null,
     "56%",
     null,
@@ -326,6 +326,33 @@ if (metadataMigration) {
   );
   const snapshotSql = source.slice(source.indexOf(metadataMarker) + metadataMarker.length);
   db.exec(snapshotSql);
+}
+
+// Titoli omonimi richiedono un'associazione editoriale esplicita: la ricerca
+// automatica su YouTube può confondere i due Dogman.
+const trailerOverrides = [
+  {
+    title: "Dogman",
+    year: 2018,
+    videoId: "eum93mpzpE0",
+    trailerTitle: "DOGMAN (2018) di Matteo Garrone - Trailer ufficiale HD",
+    trailerChannel: "01Distribution",
+  },
+  {
+    title: "Dogman",
+    year: 2023,
+    videoId: "s1KIAfuH2vU",
+    trailerTitle: "Dogman di Luc Besson con Caleb Landry Jones in concorso a Venezia 80 | Trailer ufficiale ITA HD",
+    trailerChannel: "Lucky Red",
+  },
+];
+const updateTrailer = db.prepare(`
+  UPDATE movies
+  SET youtube_trailer_id = ?, trailer_title = ?, trailer_channel = ?
+  WHERE title = ? AND year = ?
+`);
+for (const { title, year, videoId, trailerTitle, trailerChannel } of trailerOverrides) {
+  updateTrailer.run(videoId, trailerTitle, trailerChannel, title, year);
 }
 
 const metadataTotal = db
