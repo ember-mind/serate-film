@@ -59,8 +59,8 @@ import { filmSlug } from "@/lib/films";
 import { ConsensusBallot } from "@/components/ConsensusBallot";
 import { OnlineRoomCard } from "@/components/OnlineRoomCard";
 import { ReviewThread } from "@/components/ReviewThread";
-import { RsvpCard } from "@/components/RsvpCard";
 import { EventDiscussion } from "@/components/EventDiscussion";
+import { ParticipationToggle } from "@/components/ParticipationToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -187,11 +187,6 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         .filter((p) => !dVotes.some((v) => v.userId === p.id))
         .map((p) => p.name)
     : [];
-  const missingMovieNames = canManage
-    ? invitedPeople
-        .filter((p) => !ballots.some((ballot) => ballot.userId === p.id))
-        .map((p) => p.name)
-    : [];
 
   // catalogo proponibile: tutto ciò che non è già in rosa
   const proposable =
@@ -225,6 +220,8 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
           where: eq(eventRsvps.eventId, eventId),
         })
       : [];
+  const currentRsvp = rsvps.find((rsvp) => rsvp.userId === user.id);
+  const notParticipating = currentRsvp?.status === "no";
   const discussionMessages =
     event.status === "open" || event.status === "runoff"
       ? await db.query.eventDiscussionMessages.findMany({
@@ -267,6 +264,30 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
       .reduce((sum, item) => sum + (4 - item.rank!), 0);
   const vetoCount = (eventMovieId: number) =>
     ballotItems.filter((item) => item.eventMovieId === eventMovieId && item.veto).length;
+  const rankCount = (eventMovieId: number, rank: number) =>
+    ballotItems.filter(
+      (item) => item.eventMovieId === eventMovieId && item.rank === rank
+    ).length;
+  const titleForCandidate = (eventMovieId: number) => {
+    const candidate = eMovies.find((item) => item.id === eventMovieId);
+    return candidate
+      ? ms.find((movie) => movie.id === candidate.movieId)?.title ?? "Film non disponibile"
+      : "Film non disponibile";
+  };
+  const ballotDetails = ballots.map((ballot) => ({
+    userId: ballot.userId,
+    userName: nameOf(ballot.userId),
+    choices: ballotItems
+      .filter((item) => item.ballotId === ballot.id && item.rank)
+      .sort((a, b) => a.rank! - b.rank!)
+      .map((item) => ({
+        rank: item.rank!,
+        title: titleForCandidate(item.eventMovieId),
+      })),
+    vetoes: ballotItems
+      .filter((item) => item.ballotId === ballot.id && item.veto)
+      .map((item) => titleForCandidate(item.eventMovieId)),
+  }));
   const bestMovie = [...eMovies].sort(
     (a, b) => consensusScore(b.id) - consensusScore(a.id) || vetoCount(a.id) - vetoCount(b.id)
   )[0];
@@ -321,22 +342,9 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
       </header>
 
       {(event.status === "open" || event.status === "runoff" || event.status === "scheduled") && (
-        <RsvpCard
+        <ParticipationToggle
           eventId={eventId}
-          current={rsvps
-            .filter((rsvp) => rsvp.userId === user.id)
-            .map((rsvp) => ({ ...rsvp, name: nameOf(rsvp.userId) }))[0]}
-          responses={rsvps.map((rsvp) => ({ ...rsvp, name: nameOf(rsvp.userId) }))}
-          deadline={
-            event.rsvpDeadline
-              ? new Intl.DateTimeFormat("it-IT", {
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }).format(new Date(event.rsvpDeadline))
-              : null
-          }
+          notParticipating={notParticipating}
         />
       )}
 
@@ -409,7 +417,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
       )}
 
       {event.status !== "cancelled" && event.status !== "done" && (
-        <section className="ticket order-[80] p-5" aria-labelledby="cosa-portiamo">
+        <section className="ticket p-5" aria-labelledby="cosa-portiamo">
           <div className="mb-4">
             <p className="step-title" id="cosa-portiamo">
               Cosa portiamo?
@@ -417,6 +425,11 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
             <p className="mt-1 text-sm text-fumo">
               Scegli qualcosa dalla lista. Quello che manca resta subito visibile.
             </p>
+            {notParticipating && (
+              <p className="mt-2 text-xs text-velluto">
+                Hai indicato che non parteciperai: non puoi prendere impegni.
+              </p>
+            )}
           </div>
 
           {needs.length > 0 ? (
@@ -440,7 +453,10 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                     <div className="flex shrink-0 items-center gap-3">
                       {mine ? (
                         <form action={toggleEventNeedClaim.bind(null, eventId, need.id)}>
-                          <button className="rounded-full border border-proiettore bg-proiettore/10 px-3 py-1.5 text-xs text-proiettore transition-colors hover:bg-proiettore/20">
+                          <button
+                            disabled={notParticipating}
+                            className="rounded-full border border-proiettore bg-proiettore/10 px-3 py-1.5 text-xs text-proiettore transition-colors hover:bg-proiettore/20 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
                             ✓ Lo porti tu · lascia
                           </button>
                         </form>
@@ -450,7 +466,10 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                         </span>
                       ) : (
                         <form action={toggleEventNeedClaim.bind(null, eventId, need.id)}>
-                          <button className="rounded-full bg-proiettore px-3 py-1.5 text-xs font-semibold text-notte-fonda transition-colors hover:bg-proiettore-acceso">
+                          <button
+                            disabled={notParticipating}
+                            className="rounded-full bg-proiettore px-3 py-1.5 text-xs font-semibold text-notte-fonda transition-colors hover:bg-proiettore-acceso disabled:cursor-not-allowed disabled:opacity-40"
+                          >
                             Lo porto io
                           </button>
                         </form>
@@ -551,9 +570,13 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                 maxLength={160}
                 placeholder="Io porto…"
                 aria-label="Cosa porti alla serata"
+                disabled={notParticipating}
                 className="min-w-0 flex-1 rounded-lg border border-riga bg-sipario px-3 py-2.5 text-sm placeholder:text-fumo/50"
               />
-              <button className="rounded-lg border border-proiettore px-4 py-2.5 text-sm font-semibold text-proiettore transition-colors hover:bg-proiettore/10">
+              <button
+                disabled={notParticipating}
+                className="rounded-lg border border-proiettore px-4 py-2.5 text-sm font-semibold text-proiettore transition-colors hover:bg-proiettore/10 disabled:cursor-not-allowed disabled:opacity-40"
+              >
                 Segna cosa porto
               </button>
             </form>
@@ -584,12 +607,19 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                   const mine = votes.some((v) => v.userId === user.id);
                   return (
                     <li key={d.id}>
-                      <label className="stamp flex w-full cursor-pointer items-center justify-between rounded-lg border border-riga bg-sipario px-4 py-3 text-left transition-colors hover:border-fumo has-checked:border-proiettore has-checked:bg-proiettore/10">
+                      <label
+                        className={`stamp flex w-full items-center justify-between rounded-lg border border-riga bg-sipario px-4 py-3 text-left transition-colors has-checked:border-proiettore has-checked:bg-proiettore/10 ${
+                          notParticipating
+                            ? "cursor-not-allowed opacity-40"
+                            : "cursor-pointer hover:border-fumo"
+                        }`}
+                      >
                         <input
                           type="checkbox"
                           name="dateIds"
                           value={d.id}
                           defaultChecked={mine}
+                          disabled={notParticipating}
                           className="peer sr-only"
                         />
                         <span className="font-mono text-sm capitalize">
@@ -615,7 +645,8 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
             <div className="flex justify-center">
               <button
                 type="submit"
-                className="rounded-lg border border-proiettore px-5 py-2.5 text-sm font-semibold text-proiettore transition-colors hover:bg-proiettore/10"
+                disabled={notParticipating}
+                className="rounded-lg border border-proiettore px-5 py-2.5 text-sm font-semibold text-proiettore transition-colors hover:bg-proiettore/10 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Salva disponibilità
               </button>
@@ -626,15 +657,6 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
             <p className="step-title mb-3" id="vota-film">
               Atto II · Quale film scegli?
             </p>
-            {canManage && (
-              <VoteReminder
-                label="Film"
-                votedCount={invitedPeople.length - missingMovieNames.length}
-                totalCount={invitedPeople.length}
-                missingNames={missingMovieNames}
-                copyUrl={`/serate/${eventId}?focus=film`}
-              />
-            )}
             <div className="mt-3">
               <ConsensusBallot
                 eventId={eventId}
@@ -646,6 +668,9 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                           id: candidate.id,
                           title: movie.title,
                           year: movie.year,
+                          genres: movie.genres,
+                          posterUrl: movie.posterUrl,
+                          posterCredit: movie.posterCredit,
                           providers: [
                             ...new Set(
                               availability
@@ -655,6 +680,9 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                           ],
                           score: consensusScore(candidate.id),
                           vetoes: vetoCount(candidate.id),
+                          firstChoices: rankCount(candidate.id, 1),
+                          secondChoices: rankCount(candidate.id, 2),
+                          thirdChoices: rankCount(candidate.id, 3),
                         },
                       ]
                     : [];
@@ -675,16 +703,21 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                   )
                   .map((item) => item.eventMovieId)}
                 ballotsCount={ballots.length}
+                ballotDetails={ballotDetails}
+                disabled={notParticipating}
               />
             </div>
           </section>
 
-          <ProposeDate eventId={eventId} />
-
-          <ProposeMovie
-            eventId={eventId}
-            movies={proposable.map((m) => ({ id: m.id, title: m.title, year: m.year }))}
-          />
+          {!notParticipating && (
+            <div className="grid grid-cols-2 gap-2">
+              <ProposeDate eventId={eventId} />
+              <ProposeMovie
+                eventId={eventId}
+                movies={proposable.map((m) => ({ id: m.id, title: m.title, year: m.year }))}
+              />
+            </div>
+          )}
 
           {canManage && (
             <section className="ticket p-5" aria-labelledby="chiudi">
@@ -760,12 +793,19 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                   const mine = votes.some((v) => v.userId === user.id);
                   return (
                     <li key={em.id}>
-                      <label className="stamp block w-full cursor-pointer overflow-hidden rounded-lg border-2 border-riga text-left opacity-85 hover:opacity-100 has-checked:border-proiettore has-checked:opacity-100">
+                      <label
+                        className={`stamp block w-full overflow-hidden rounded-lg border-2 border-riga text-left has-checked:border-proiettore has-checked:opacity-100 ${
+                          notParticipating
+                            ? "cursor-not-allowed opacity-40"
+                            : "cursor-pointer opacity-85 hover:opacity-100"
+                        }`}
+                      >
                         <input
                           type="radio"
                           name="eventMovieId"
                           value={em.id}
                           defaultChecked={mine}
+                          disabled={notParticipating}
                           className="sr-only"
                         />
                         <Poster
@@ -793,7 +833,8 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
             <div className="ticket ticket-glow flex flex-col gap-2 p-4">
               <button
                 type="submit"
-                className="titlecard rounded-lg bg-proiettore py-3 text-base text-notte-fonda transition-colors hover:bg-proiettore-acceso"
+                disabled={notParticipating}
+                className="titlecard rounded-lg bg-proiettore py-3 text-base text-notte-fonda transition-colors hover:bg-proiettore-acceso disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Vota!
               </button>

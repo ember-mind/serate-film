@@ -21,6 +21,7 @@ import {
   eventInvitees,
   eventMovies,
   eventNeeds,
+  eventRsvps,
   dateVotes,
   movieVotes,
   runoffVotes,
@@ -525,6 +526,7 @@ export async function saveEventContribution(eventId: number, formData: FormData)
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event || event.status === "done" || event.status === "cancelled") return;
   if (!(await canAccessEvent(event, user))) return;
+  if (await hasOptedOut(eventId, user.id)) return;
 
   const item = String(formData.get("item") ?? "").trim().slice(0, 160);
   if (!item) {
@@ -577,6 +579,7 @@ export async function toggleEventNeedClaim(eventId: number, needId: number) {
   ]);
   if (!event || !need || event.status === "done" || event.status === "cancelled") return;
   if (!(await canAccessEvent(event, user))) return;
+  if (await hasOptedOut(eventId, user.id)) return;
 
   if (need.claimedBy === user.id) {
     await db
@@ -611,6 +614,9 @@ export async function proposeEventMovie(
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event || event.status !== "open") return { error: "Le votazioni sono chiuse." };
   if (!(await canAccessEvent(event, user))) return { error: "Serata su invito." };
+  if (await hasOptedOut(eventId, user.id)) {
+    return { error: "Hai indicato che non parteciperai." };
+  }
 
   const movieId = Number(formData.get("movieId"));
   const movie = await db.query.movies.findFirst({ where: eq(movies.id, movieId) });
@@ -635,6 +641,9 @@ export async function proposeEventDate(
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event || event.status !== "open") return { error: "Le votazioni sono chiuse." };
   if (!(await canAccessEvent(event, user))) return { error: "Serata su invito." };
+  if (await hasOptedOut(eventId, user.id)) {
+    return { error: "Hai indicato che non parteciperai." };
+  }
 
   const date = String(formData.get("date") ?? "").trim();
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
@@ -661,6 +670,7 @@ export async function submitVotes(eventId: number, formData: FormData) {
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event || event.status !== "open") return;
   if (!(await canAccessEvent(event, user))) return;
+  if (await hasOptedOut(eventId, user.id)) return;
 
   const pickedDates = new Set(formData.getAll("dateIds").map(Number));
   const pickedMovies = new Set(formData.getAll("movieIds").map(Number));
@@ -743,6 +753,7 @@ export async function submitRunoffVote(eventId: number, formData: FormData) {
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event || event.status !== "runoff") return;
   if (!(await canAccessEvent(event, user))) return;
+  if (await hasOptedOut(eventId, user.id)) return;
 
   const eventMovieId = Number(formData.get("eventMovieId"));
   const ems = await db.query.eventMovies.findMany({ where: eq(eventMovies.eventId, eventId) });
@@ -768,6 +779,19 @@ async function canManage(eventId: number) {
   if (!event) throw new Error("Serata non trovata");
   if (event.createdBy !== user.id && !user.isAdmin) throw new Error("Solo chi ha creato la serata può farlo");
   return { user, event };
+}
+
+async function hasOptedOut(eventId: number, userId: number) {
+  return Boolean(
+    await db.query.eventRsvps.findFirst({
+      where: and(
+        eq(eventRsvps.eventId, eventId),
+        eq(eventRsvps.userId, userId),
+        eq(eventRsvps.status, "no")
+      ),
+      columns: { eventId: true },
+    })
+  );
 }
 
 export async function addEventInvitees(eventId: number, formData: FormData) {

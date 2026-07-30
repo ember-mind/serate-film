@@ -22,11 +22,14 @@ export function ProposeMovie({ eventId, movies }: { eventId: number; movies: Pic
     : [];
 
   return (
-    <details className="ticket p-5">
-      <summary className="eyebrow cursor-pointer list-none">
-        Manca un titolo? Proponilo per questa serata →
+    <details className="group col-span-1 open:col-span-2">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center rounded-lg border border-riga bg-notte px-3 py-2.5 text-center text-sm font-semibold text-fumo transition-all hover:-translate-y-0.5 hover:border-proiettore/70 hover:text-schermo group-open:border-proiettore group-open:text-proiettore">
+        + Manca un titolo
       </summary>
-      <form action={action} className="mt-4 flex flex-col gap-3">
+      <form
+        action={action}
+        className="ticket mt-3 flex flex-col gap-3 p-4"
+      >
         <input
           type="search"
           value={query}

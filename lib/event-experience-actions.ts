@@ -5,14 +5,20 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
   attendance,
+  dateVotes,
+  eventContributions,
+  eventDates,
+  eventNeeds,
   eventRsvps,
   events,
   eventMovies,
   movieBallotItems,
   movieBallots,
+  movieVotes,
   notifications,
   ratingComments,
   ratings,
+  runoffVotes,
 } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { canAccessEvent } from "@/lib/access";
@@ -27,7 +33,7 @@ async function eventForMember(eventId: number) {
   return (await canAccessEvent(event, user)) ? { user, event } : null;
 }
 
-export async function saveEventRsvp(
+export async function setEventParticipation(
   eventId: number,
   _prev: ActionState | undefined,
   formData: FormData
@@ -35,35 +41,107 @@ export async function saveEventRsvp(
   const context = await eventForMember(eventId);
   if (!context) return { error: "Questa serata è riservata." };
   if (context.event.status === "done" || context.event.status === "cancelled") {
-    return { error: "Le conferme sono chiuse." };
+    return { error: "Le presenze sono chiuse." };
   }
 
-  const rawStatus = String(formData.get("status") ?? "");
-  if (rawStatus !== "yes" && rawStatus !== "maybe" && rawStatus !== "no") {
-    return { error: "Scegli se ci sarai." };
-  }
-  const guestCount = Math.min(6, Math.max(0, Number(formData.get("guestCount")) || 0));
-  const note = String(formData.get("note") ?? "").trim().slice(0, 160) || null;
+  const participating = formData.get("participating") === "yes";
+  if (participating) {
+    await db
+      .delete(eventRsvps)
+      .where(
+        and(
+          eq(eventRsvps.eventId, eventId),
+          eq(eventRsvps.userId, context.user.id),
+          eq(eventRsvps.status, "no")
+        )
+      );
+  } else {
+    const [dates, candidates, ballots] = await Promise.all([
+      db.query.eventDates.findMany({
+        where: eq(eventDates.eventId, eventId),
+        columns: { id: true },
+      }),
+      db.query.eventMovies.findMany({
+        where: eq(eventMovies.eventId, eventId),
+        columns: { id: true },
+      }),
+      db.query.movieBallots.findMany({
+        where: and(
+          eq(movieBallots.eventId, eventId),
+          eq(movieBallots.userId, context.user.id)
+        ),
+        columns: { id: true },
+      }),
+    ]);
 
-  await db
-    .insert(eventRsvps)
-    .values({
-      eventId,
-      userId: context.user.id,
-      status: rawStatus,
-      guestCount,
-      note,
-      respondedAt: new Date().toISOString(),
-    })
-    .onConflictDoUpdate({
-      target: [eventRsvps.eventId, eventRsvps.userId],
-      set: {
-        status: rawStatus,
-        guestCount,
-        note,
+    if (dates.length > 0) {
+      await db.delete(dateVotes).where(
+        and(
+          inArray(
+            dateVotes.eventDateId,
+            dates.map((date) => date.id)
+          ),
+          eq(dateVotes.userId, context.user.id)
+        )
+      );
+    }
+    if (candidates.length > 0) {
+      const candidateIds = candidates.map((candidate) => candidate.id);
+      await db.delete(movieVotes).where(
+        and(
+          inArray(movieVotes.eventMovieId, candidateIds),
+          eq(movieVotes.userId, context.user.id)
+        )
+      );
+      await db.delete(runoffVotes).where(
+        and(
+          inArray(runoffVotes.eventMovieId, candidateIds),
+          eq(runoffVotes.userId, context.user.id)
+        )
+      );
+    }
+    if (ballots.length > 0) {
+      const ballotIds = ballots.map((ballot) => ballot.id);
+      await db.delete(movieBallotItems).where(inArray(movieBallotItems.ballotId, ballotIds));
+      await db.delete(movieBallots).where(inArray(movieBallots.id, ballotIds));
+    }
+    await db
+      .update(eventNeeds)
+      .set({ claimedBy: null })
+      .where(
+        and(
+          eq(eventNeeds.eventId, eventId),
+          eq(eventNeeds.claimedBy, context.user.id)
+        )
+      );
+    await db
+      .delete(eventContributions)
+      .where(
+        and(
+          eq(eventContributions.eventId, eventId),
+          eq(eventContributions.userId, context.user.id)
+        )
+      );
+    await db
+      .insert(eventRsvps)
+      .values({
+        eventId,
+        userId: context.user.id,
+        status: "no",
+        guestCount: 0,
+        note: null,
         respondedAt: new Date().toISOString(),
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: [eventRsvps.eventId, eventRsvps.userId],
+        set: {
+          status: "no",
+          guestCount: 0,
+          note: null,
+          respondedAt: new Date().toISOString(),
+        },
+      });
+  }
 
   revalidatePath(`/serate/${eventId}`);
   revalidatePath("/");
@@ -78,6 +156,14 @@ export async function submitConsensusBallot(
   const context = await eventForMember(eventId);
   if (!context) return { error: "Questa serata è riservata." };
   if (context.event.status !== "open") return { error: "La scelta del film è chiusa." };
+  const optedOut = await db.query.eventRsvps.findFirst({
+    where: and(
+      eq(eventRsvps.eventId, eventId),
+      eq(eventRsvps.userId, context.user.id),
+      eq(eventRsvps.status, "no")
+    ),
+  });
+  if (optedOut) return { error: "Hai indicato che non parteciperai." };
 
   const candidates = await db.query.eventMovies.findMany({
     where: eq(eventMovies.eventId, eventId),

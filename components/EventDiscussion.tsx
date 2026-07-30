@@ -115,11 +115,11 @@ export function EventDiscussion({
   return (
     <>
       <aside className="ticket sticky top-24 hidden lg:block">{panel()}</aside>
-      <details className="fixed bottom-16 right-3 z-30 overflow-hidden rounded-xl border border-proiettore/60 bg-sipario shadow-2xl lg:hidden">
+      <details className="group fixed bottom-16 right-3 z-30 overflow-hidden rounded-xl border border-proiettore/60 bg-sipario shadow-2xl open:w-[min(22rem,calc(100vw-1.5rem))] lg:hidden">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-proiettore">
           💬 Commenti{messages.length > 0 ? ` · ${messages.length}` : ""}
         </summary>
-        <div className="border-t border-riga">{panel(true)}</div>
+        <div className="hidden border-t border-riga group-open:block">{panel(true)}</div>
       </details>
     </>
   );

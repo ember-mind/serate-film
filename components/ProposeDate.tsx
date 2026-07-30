@@ -8,11 +8,14 @@ export function ProposeDate({ eventId }: { eventId: number }) {
   const [state, action, pending] = useActionState(proposeEventDate.bind(null, eventId), undefined);
 
   return (
-    <details className="ticket p-5">
-      <summary className="eyebrow cursor-pointer list-none">
-        Serve un&apos;altra data? Proponila →
+    <details className="group col-span-1 open:col-span-2">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center rounded-lg border border-riga bg-notte px-3 py-2.5 text-center text-sm font-semibold text-fumo transition-all hover:-translate-y-0.5 hover:border-proiettore/70 hover:text-schermo group-open:border-proiettore group-open:text-proiettore">
+        + Serve un&apos;altra data
       </summary>
-      <form action={action} className="mt-4 flex flex-col gap-3">
+      <form
+        action={action}
+        className="ticket mt-3 flex flex-col gap-3 p-4"
+      >
         <input
           type="date"
           name="date"
