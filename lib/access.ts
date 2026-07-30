@@ -93,7 +93,7 @@ export async function canAccessEvent(
         eq(circleMembers.status, "active")
       ),
     });
-    return Boolean(membership);
+    if (membership) return true;
   }
 
   const invitee = await db.query.eventInvitees.findFirst({

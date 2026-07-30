@@ -28,6 +28,7 @@ import {
 } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import {
+  addEventInvitees,
   addEventNeed,
   cancelEvent,
   closeEvent,
@@ -114,11 +115,16 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
       ? people.filter((p) => invitees.includes(p.id) || p.id === event.createdBy)
       : event.access === "circle"
         ? people.filter((p) =>
+            p.id === event.createdBy ||
+            invitees.includes(p.id) ||
             circleMemberships.some(
               (membership) => membership.userId === p.id && membership.status === "active"
             )
           )
         : people;
+  const directInviteCandidates = restricted
+    ? people.filter((person) => !invitedPeople.some((invited) => invited.id === person.id))
+    : [];
 
   const dates = await db.query.eventDates.findMany({
     where: eq(eventDates.eventId, eventId),
@@ -350,8 +356,39 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
             Invita gli amici
           </p>
           <p className="mb-4 text-sm text-fumo">
-            Chi apre il link può accedere oppure creare un account. Entrerà solo in questa serata.
+            Aggiungi account esistenti oppure condividi il link. Chi non ha ancora un account può
+            registrarsi dall&apos;invito.
           </p>
+          {directInviteCandidates.length > 0 && (
+            <details className="mb-4 rounded-lg border border-riga bg-notte">
+              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-proiettore transition-colors hover:bg-proiettore/10">
+                + Aggiungi persone ({directInviteCandidates.length})
+              </summary>
+              <form
+                action={addEventInvitees.bind(null, eventId)}
+                className="border-t border-riga p-4"
+              >
+                <ul className="grid max-h-56 gap-2 overflow-y-auto sm:grid-cols-2">
+                  {directInviteCandidates.map((person) => (
+                    <li key={person.id}>
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-riga px-3 py-2 text-sm transition-colors has-checked:border-proiettore has-checked:bg-proiettore/10 hover:border-proiettore/60">
+                        <input
+                          type="checkbox"
+                          name="userIds"
+                          value={person.id}
+                          className="accent-[#e8b84b]"
+                        />
+                        {person.name}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+                <button className="mt-3 cursor-pointer rounded-lg bg-proiettore px-4 py-2.5 text-sm font-semibold text-notte-fonda transition-all hover:-translate-y-0.5 hover:bg-proiettore-acceso">
+                  Invita selezionati
+                </button>
+              </form>
+            </details>
+          )}
           {inviteLink ? (
             <>
               <InviteLink token={inviteLink.token} eventTitle={title} />

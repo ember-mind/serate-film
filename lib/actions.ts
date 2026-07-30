@@ -770,6 +770,89 @@ async function canManage(eventId: number) {
   return { user, event };
 }
 
+export async function addEventInvitees(eventId: number, formData: FormData) {
+  const { user, event } = await canManage(eventId);
+  if (
+    event.status === "done" ||
+    event.status === "cancelled" ||
+    (event.access !== "invite_only" && event.access !== "circle")
+  ) {
+    return;
+  }
+
+  const requestedIds = [
+    ...new Set(
+      formData
+        .getAll("userIds")
+        .map(Number)
+        .filter(Number.isInteger)
+    ),
+  ];
+  if (requestedIds.length === 0) return;
+
+  const [validUsers, existingInvitees, circleMembershipRows] = await Promise.all([
+    db.query.users.findMany({
+      where: inArray(users.id, requestedIds),
+      columns: { id: true },
+    }),
+    db.query.eventInvitees.findMany({
+      where: eq(eventInvitees.eventId, eventId),
+      columns: { userId: true },
+    }),
+    event.access === "circle" && event.circleId
+      ? db.query.circleMembers.findMany({
+          where: and(
+            eq(circleMembers.circleId, event.circleId),
+            eq(circleMembers.status, "active")
+          ),
+          columns: { userId: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const alreadyIncluded = new Set([
+    event.createdBy,
+    ...existingInvitees.map((invitee) => invitee.userId),
+    ...circleMembershipRows.map((membership) => membership.userId),
+  ]);
+  const userIds = validUsers
+    .map((person) => person.id)
+    .filter((userId) => !alreadyIncluded.has(userId));
+  if (userIds.length === 0) return;
+
+  await db
+    .insert(eventInvitees)
+    .values(userIds.map((userId) => ({ eventId, userId })))
+    .onConflictDoNothing();
+
+  const notifiedUsers = userIds.filter((userId) => userId !== user.id);
+  if (notifiedUsers.length > 0) {
+    await db
+      .insert(notifications)
+      .values(
+        notifiedUsers.map((userId) => ({
+          userId,
+          actorUserId: user.id,
+          type: "event_invite" as const,
+          eventId,
+        }))
+      )
+      .onConflictDoUpdate({
+        target: [
+          notifications.userId,
+          notifications.actorUserId,
+          notifications.type,
+          notifications.eventId,
+        ],
+        set: { readAt: null, createdAt: new Date().toISOString() },
+      });
+  }
+
+  revalidatePath(`/serate/${eventId}`);
+  revalidatePath("/serate");
+  revalidatePath("/notifiche");
+}
+
 export async function closeEvent(eventId: number, formData: FormData) {
   await canManage(eventId);
   const chosenDate = String(formData.get("chosenDate") ?? "");
