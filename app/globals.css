@@ -261,11 +261,30 @@ body {
   pointer-events: none;
 }
 
+.cinepresa-stage {
+  position: relative;
+  height: 7rem;
+}
+
+.cinepresa-stage .cinepresa {
+  top: -0.75rem;
+  right: 0;
+}
+
 @media (min-width: 640px) {
   .cinepresa {
     top: -58px;
     right: 28px;
     width: 300px;
+  }
+
+  .cinepresa-stage {
+    height: 9rem;
+  }
+
+  .cinepresa-stage .cinepresa {
+    top: -1rem;
+    right: 1rem;
   }
 }
 

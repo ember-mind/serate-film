@@ -22,11 +22,6 @@ import { formatDateFull } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
-function giorniAlla(iso: string) {
-  const target = new Date(iso + "T20:00:00");
-  return Math.max(0, Math.ceil((target.getTime() - Date.now()) / 86_400_000));
-}
-
 export default async function HomePage() {
   const me = await requireUser();
   const scheduled = await filterVisible(
@@ -183,38 +178,22 @@ export default async function HomePage() {
   const tilts = ["-2.2deg", "1.6deg", "-1.2deg", "2.4deg"];
 
   const quote = randomQuote();
-  const firstName = me.name.split(" ")[0];
-  const giorni = next?.chosenDate ? giorniAlla(next.chosenDate) : null;
 
   return (
     <div className="apertura flex flex-col gap-12">
-      {/* cartello di apertura */}
-      <section className="pt-2 text-center">
-        <p className="titlecard-sub">Il cinema club saluta</p>
-        <h1 className="titlecard mt-1 text-3xl text-schermo">{firstName}</h1>
-        <p className="mt-2 text-sm text-fumo">
-          {next
-            ? giorni === 0
-              ? "È stasera. Spegnete i telefoni."
-              : `Mancano ${giorni} ${giorni === 1 ? "giorno" : "giorni"} alla proiezione.`
-            : open.length > 0
-              ? "Il cartellone è aperto: si vota."
-              : "Lo schermo è bianco. Tocca a voi."}
-        </p>
-      </section>
+      <div className="cinepresa-stage -mb-8">
+        <Cinepresa />
+      </div>
 
       <section className="grid gap-3 sm:grid-cols-2" aria-label="Scorciatoie">
         <Link
-          href="/trova-film"
+          href="/serate/nuova"
           className="ticket group p-4 transition-colors hover:border-proiettore"
         >
           <p className="text-xl" aria-hidden="true">✦</p>
           <h2 className="mt-2 font-semibold text-schermo group-hover:text-proiettore">
-            Trova il film
+            Crea una serata
           </h2>
-          <p className="mt-1 text-xs leading-5 text-fumo">
-            Mood, durata e piattaforme: una risposta per la serata.
-          </p>
         </Link>
         <Link
           href="/circoli"
@@ -231,12 +210,8 @@ export default async function HomePage() {
       </section>
 
       {/* lo schermo: prossima proiezione */}
-      <section aria-labelledby="prossima" className="-mx-4">
-        <p className="eyebrow mb-3 px-4" id="prossima">
-          Stasera in sala
-        </p>
-        <div className="relative mt-14 sm:mt-16">
-        <Cinepresa />
+      <section aria-label="Prossima serata" className="-mx-4">
+        <div>
         {next && nextMovie ? (
           <Link href={`/serate/${next.id}`} className="cinemascope block px-5 py-8 sm:px-10">
             <div className="mx-auto flex max-w-3xl flex-col items-center gap-6 sm:flex-row sm:items-stretch">
