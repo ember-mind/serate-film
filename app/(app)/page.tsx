@@ -210,9 +210,8 @@ export default async function HomePage() {
       </section>
 
       {/* lo schermo: prossima proiezione */}
-      <section aria-label="Prossima serata" className="-mx-4">
-        <div>
-        {next && nextMovie ? (
+      {next && nextMovie && (
+        <section aria-label="Prossima serata" className="-mx-4">
           <Link href={`/serate/${next.id}`} className="cinemascope block px-5 py-8 sm:px-10">
             <div className="mx-auto flex max-w-3xl flex-col items-center gap-6 sm:flex-row sm:items-stretch">
               <Poster
@@ -244,22 +243,8 @@ export default async function HomePage() {
               </div>
             </div>
           </Link>
-        ) : (
-          <div className="cinemascope px-6 py-12 text-center">
-            <p className="titlecard text-2xl text-schermo">Lo schermo è bianco</p>
-            <p className="mx-auto mt-3 max-w-md text-sm text-fumo">
-              Divano, luci basse, i soliti. Manca solo il film.
-            </p>
-            <Link
-              href="/serate/nuova"
-              className="titlecard mt-6 inline-block rounded-sm bg-proiettore px-6 py-2.5 text-sm text-notte-fonda transition-colors hover:bg-proiettore-acceso"
-            >
-              Metti in cartellone
-            </Link>
-          </div>
-        )}
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* si vota */}
       {open.length > 0 && (
