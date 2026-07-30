@@ -6,16 +6,20 @@ import { requireUser } from "@/lib/auth";
 import { Poster } from "@/components/Poster";
 import { Stars } from "@/components/Stars";
 import { formatDateFull } from "@/lib/dates";
+import { filterVisible } from "@/lib/invites";
 
 export const dynamic = "force-dynamic";
 
 export default async function StoricoPage() {
-  await requireUser();
+  const user = await requireUser();
 
-  const done = await db.query.events.findMany({
-    where: eq(events.status, "done"),
-    orderBy: desc(events.chosenDate),
-  });
+  const done = await filterVisible(
+    await db.query.events.findMany({
+      where: eq(events.status, "done"),
+      orderBy: desc(events.chosenDate),
+    }),
+    user
+  );
   const movieIds = done.map((e) => e.chosenMovieId).filter((x): x is number => Boolean(x));
   const ms = movieIds.length > 0 ? await db.query.movies.findMany({ where: inArray(movies.id, movieIds) }) : [];
   const eventIds = done.map((e) => e.id);

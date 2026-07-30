@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { eventInvitees, eventInviteLinks, events, movies, users } from "@/db/schema";
+import { eventInviteLinks, events, movies, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
 import { acceptEventInvite } from "@/lib/actions";
-import { canSee } from "@/lib/invites";
+import { canAccessEvent } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
@@ -38,18 +38,14 @@ export default async function InvitePage({
     );
   }
 
-  const [organizer, movie, currentUser, invitees] = await Promise.all([
+  const [organizer, movie, currentUser] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, event.createdBy) }),
     event.chosenMovieId
       ? db.query.movies.findFirst({ where: eq(movies.id, event.chosenMovieId) })
       : null,
     getCurrentUser(),
-    db.query.eventInvitees.findMany({ where: eq(eventInvitees.eventId, event.id) }),
   ]);
-  const invitedIds = invitees.map((row) => row.userId);
-  const alreadyInside = currentUser
-    ? canSee(event, invitedIds.length > 0 ? invitedIds : undefined, currentUser)
-    : false;
+  const alreadyInside = currentUser ? await canAccessEvent(event, currentUser) : false;
   const eventTitle = movie?.title ?? event.title ?? "Serata da decidere";
 
   return (

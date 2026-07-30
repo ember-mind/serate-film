@@ -134,6 +134,20 @@
       "when": 1785262988879,
       "tag": "0018_event-needs-checklist",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1785317260145,
+      "tag": "0019_social-online-foundations",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1785404151862,
+      "tag": "0020_event-discussion-chat",
+      "breakpoints": true
     }
   ]
 }

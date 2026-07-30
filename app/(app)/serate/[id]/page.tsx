@@ -4,18 +4,26 @@ import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attendance,
+  circleMembers,
   dateVotes,
   eventContributions,
   eventDates,
+  eventDiscussionMessages,
   eventInviteLinks,
   eventMovies,
   eventNeeds,
+  eventRooms,
+  eventRsvps,
   events,
+  movieAvailability,
+  movieBallotItems,
+  movieBallots,
   movies,
-  movieVotes,
   runoffVotes,
   ratings,
+  ratingComments,
   reviewLikes,
+  screeningLicenses,
   users,
 } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
@@ -31,13 +39,13 @@ import {
   reopenEvent,
   saveEventContribution,
   saveEventNotes,
-  startRunoff,
   submitRunoffVote,
   submitVotes,
   toggleEventNeedClaim,
   toggleReviewLike,
 } from "@/lib/actions";
-import { canSee, inviteesByEvent } from "@/lib/invites";
+import { inviteesByEvent } from "@/lib/invites";
+import { canAccessEvent } from "@/lib/access";
 import { Poster } from "@/components/Poster";
 import { ProposeDate } from "@/components/ProposeDate";
 import { ProposeMovie } from "@/components/ProposeMovie";
@@ -47,6 +55,11 @@ import { VoteReminder } from "@/components/VoteReminder";
 import { InviteLink } from "@/components/InviteLink";
 import { formatDateFull, formatDateLong } from "@/lib/dates";
 import { filmSlug } from "@/lib/films";
+import { ConsensusBallot } from "@/components/ConsensusBallot";
+import { OnlineRoomCard } from "@/components/OnlineRoomCard";
+import { ReviewThread } from "@/components/ReviewThread";
+import { RsvpCard } from "@/components/RsvpCard";
+import { EventDiscussion } from "@/components/EventDiscussion";
 
 export const dynamic = "force-dynamic";
 
@@ -75,8 +88,8 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
   const nameOf = (uid: number) => people.find((p) => p.id === uid)?.name ?? "?";
 
   const invitees = (await inviteesByEvent([eventId])).get(eventId) ?? [];
-  const restricted = invitees.length > 0;
-  if (!canSee(event, invitees, user)) {
+  const restricted = event.access !== "club" && event.access !== "public";
+  if (!(await canAccessEvent(event, user))) {
     return (
       <div className="mx-auto max-w-md pt-10 text-center">
         <p className="eyebrow">Riservato</p>
@@ -90,9 +103,22 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
       </div>
     );
   }
-  const invitedPeople = restricted
-    ? people.filter((p) => invitees.includes(p.id) || p.id === event.createdBy)
-    : people;
+  const circleMemberships =
+    event.access === "circle" && event.circleId
+      ? await db.query.circleMembers.findMany({
+          where: eq(circleMembers.circleId, event.circleId),
+        })
+      : [];
+  const invitedPeople =
+    event.access === "invite_only"
+      ? people.filter((p) => invitees.includes(p.id) || p.id === event.createdBy)
+      : event.access === "circle"
+        ? people.filter((p) =>
+            circleMemberships.some(
+              (membership) => membership.userId === p.id && membership.status === "active"
+            )
+          )
+        : people;
 
   const dates = await db.query.eventDates.findMany({
     where: eq(eventDates.eventId, eventId),
@@ -118,12 +144,24 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
           ),
         })
       : [];
-  const mVotes =
-    eMovies.length > 0
-      ? await db.query.movieVotes.findMany({
+  const ballots = await db.query.movieBallots.findMany({
+    where: eq(movieBallots.eventId, eventId),
+  });
+  const ballotItems =
+    ballots.length > 0
+      ? await db.query.movieBallotItems.findMany({
           where: inArray(
-            movieVotes.eventMovieId,
-            eMovies.map((em) => em.id)
+            movieBallotItems.ballotId,
+            ballots.map((ballot) => ballot.id)
+          ),
+        })
+      : [];
+  const availability =
+    ms.length > 0
+      ? await db.query.movieAvailability.findMany({
+          where: inArray(
+            movieAvailability.movieId,
+            ms.map((movie) => movie.id)
           ),
         })
       : [];
@@ -145,7 +183,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
     : [];
   const missingMovieNames = canManage
     ? invitedPeople
-        .filter((p) => !mVotes.some((v) => v.userId === p.id))
+        .filter((p) => !ballots.some((ballot) => ballot.userId === p.id))
         .map((p) => p.name)
     : [];
 
@@ -168,6 +206,27 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
     event.status === "done"
       ? await db.query.reviewLikes.findMany({ where: eq(reviewLikes.eventId, eventId) })
       : [];
+  const comments =
+    event.status === "done"
+      ? await db.query.ratingComments.findMany({
+          where: eq(ratingComments.eventId, eventId),
+          orderBy: asc(ratingComments.id),
+        })
+      : [];
+  const rsvps =
+    event.status !== "cancelled"
+      ? await db.query.eventRsvps.findMany({
+          where: eq(eventRsvps.eventId, eventId),
+        })
+      : [];
+  const discussionMessages =
+    event.status === "open" || event.status === "runoff"
+      ? await db.query.eventDiscussionMessages.findMany({
+          where: eq(eventDiscussionMessages.eventId, eventId),
+          orderBy: asc(eventDiscussionMessages.id),
+          limit: 80,
+        })
+      : [];
   const contributions = await db.query.eventContributions.findMany({
     where: eq(eventContributions.eventId, eventId),
   });
@@ -180,6 +239,15 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         where: eq(eventInviteLinks.eventId, eventId),
       })
     : null;
+  const room = await db.query.eventRooms.findFirst({
+    where: eq(eventRooms.eventId, eventId),
+  });
+  const screeningLicense =
+    event.viewingMode === "licensed_public"
+      ? await db.query.screeningLicenses.findFirst({
+          where: eq(screeningLicenses.eventId, eventId),
+        })
+      : null;
 
   // suggerimenti chiusura: data più disponibile, film più approvato
   const bestDate = [...dates].sort(
@@ -187,21 +255,15 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
       dVotes.filter((v) => v.eventDateId === b.id).length -
       dVotes.filter((v) => v.eventDateId === a.id).length
   )[0];
+  const consensusScore = (eventMovieId: number) =>
+    ballotItems
+      .filter((item) => item.eventMovieId === eventMovieId && item.rank)
+      .reduce((sum, item) => sum + (4 - item.rank!), 0);
+  const vetoCount = (eventMovieId: number) =>
+    ballotItems.filter((item) => item.eventMovieId === eventMovieId && item.veto).length;
   const bestMovie = [...eMovies].sort(
-    (a, b) =>
-      mVotes.filter((v) => v.eventMovieId === b.id).length -
-      mVotes.filter((v) => v.eventMovieId === a.id).length
+    (a, b) => consensusScore(b.id) - consensusScore(a.id) || vetoCount(a.id) - vetoCount(b.id)
   )[0];
-
-  // pareggio in Atto II: due o più film appaiati in cima, almeno un timbro
-  const maxMovieVotes =
-    eMovies.length > 0
-      ? Math.max(...eMovies.map((em) => mVotes.filter((v) => v.eventMovieId === em.id).length))
-      : 0;
-  const tiedTop =
-    maxMovieVotes > 0
-      ? eMovies.filter((em) => mVotes.filter((v) => v.eventMovieId === em.id).length === maxMovieVotes)
-      : [];
 
   const runoffMovies = eMovies.filter((em) => em.inRunoff);
   const runoffLeader = [...runoffMovies].sort(
@@ -213,7 +275,8 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
   const title = chosenMovie ? chosenMovie.title : event.title || "Serata da decidere";
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-8">
+    <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+      <div className="flex min-w-0 flex-col gap-8">
       <FocusSection />
       <header>
         <p className="eyebrow">
@@ -237,7 +300,9 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         {event.title && chosenMovie && <p className="mt-1 text-sm text-fumo">{event.title}</p>}
         {restricted && (
           <p className="mt-2 font-mono text-xs uppercase tracking-[0.18em] text-fumo">
-            Su invito · {invitees.map(nameOf).join(", ")}
+            {event.access === "invite_only"
+              ? `Su invito · ${invitees.map(nameOf).join(", ")}`
+              : "Solo per il circolo"}
           </p>
         )}
         {event.status === "open" && (event.location || event.startTime) && (
@@ -249,8 +314,38 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         )}
       </header>
 
-      {canManage && event.status !== "cancelled" && (
-        <section className="ticket p-5" aria-labelledby="invita">
+      {(event.status === "open" || event.status === "runoff" || event.status === "scheduled") && (
+        <RsvpCard
+          eventId={eventId}
+          current={rsvps
+            .filter((rsvp) => rsvp.userId === user.id)
+            .map((rsvp) => ({ ...rsvp, name: nameOf(rsvp.userId) }))[0]}
+          responses={rsvps.map((rsvp) => ({ ...rsvp, name: nameOf(rsvp.userId) }))}
+          deadline={
+            event.rsvpDeadline
+              ? new Intl.DateTimeFormat("it-IT", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }).format(new Date(event.rsvpDeadline))
+              : null
+          }
+        />
+      )}
+
+      {event.viewingMode !== "in_person" && event.status !== "cancelled" && (
+        <OnlineRoomCard
+          eventId={eventId}
+          viewingMode={event.viewingMode}
+          roomConfigured={Boolean(room)}
+          canManage={canManage}
+          licenseStatus={screeningLicense?.status ?? null}
+        />
+      )}
+
+      {canManage && event.status !== "cancelled" && event.status !== "done" && (
+        <section className="ticket order-[70] p-5" aria-labelledby="invita">
           <p className="step-title mb-2" id="invita">
             Invita gli amici
           </p>
@@ -276,8 +371,8 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         </section>
       )}
 
-      {event.status !== "cancelled" && (
-        <section className="ticket p-5" aria-labelledby="cosa-portiamo">
+      {event.status !== "cancelled" && event.status !== "done" && (
+        <section className="ticket order-[80] p-5" aria-labelledby="cosa-portiamo">
           <div className="mb-4">
             <p className="step-title" id="cosa-portiamo">
               Cosa portiamo?
@@ -306,11 +401,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
-                      {event.status === "done" ? (
-                        <span className="text-xs text-fumo">
-                          {claimed ? `Portato da ${nameOf(need.claimedBy!)}` : "Non assegnato"}
-                        </span>
-                      ) : mine ? (
+                      {mine ? (
                         <form action={toggleEventNeedClaim.bind(null, eventId, need.id)}>
                           <button className="rounded-full border border-proiettore bg-proiettore/10 px-3 py-1.5 text-xs text-proiettore transition-colors hover:bg-proiettore/20">
                             ✓ Lo porti tu · lascia
@@ -327,7 +418,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                           </button>
                         </form>
                       )}
-                      {canManage && event.status !== "done" && (
+                      {canManage && (
                         <form action={deleteEventNeed.bind(null, eventId, need.id)}>
                           <button
                             aria-label={`Rimuovi ${need.item} dalla lista`}
@@ -348,7 +439,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
             </p>
           )}
 
-          {canManage && event.status !== "done" && (
+          {canManage && (
             <div className="mt-5 border-t border-riga pt-5">
               <p className="eyebrow mb-3">Aggiungi alla lista</p>
               <div className="mb-3 flex flex-wrap gap-2">
@@ -411,26 +502,24 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                 ))}
               </ul>
             )}
-            {event.status !== "done" && (
-              <form
-                action={saveEventContribution.bind(null, eventId)}
-                className="flex flex-col gap-2 sm:flex-row"
-              >
-                <input
-                  name="item"
-                  defaultValue={
-                    contributions.find((contribution) => contribution.userId === user.id)?.item ?? ""
-                  }
-                  maxLength={160}
-                  placeholder="Io porto…"
-                  aria-label="Cosa porti alla serata"
-                  className="min-w-0 flex-1 rounded-lg border border-riga bg-sipario px-3 py-2.5 text-sm placeholder:text-fumo/50"
-                />
-                <button className="rounded-lg border border-proiettore px-4 py-2.5 text-sm font-semibold text-proiettore transition-colors hover:bg-proiettore/10">
-                  Segna cosa porto
-                </button>
-              </form>
-            )}
+            <form
+              action={saveEventContribution.bind(null, eventId)}
+              className="flex flex-col gap-2 sm:flex-row"
+            >
+              <input
+                name="item"
+                defaultValue={
+                  contributions.find((contribution) => contribution.userId === user.id)?.item ?? ""
+                }
+                maxLength={160}
+                placeholder="Io porto…"
+                aria-label="Cosa porti alla serata"
+                className="min-w-0 flex-1 rounded-lg border border-riga bg-sipario px-3 py-2.5 text-sm placeholder:text-fumo/50"
+              />
+              <button className="rounded-lg border border-proiettore px-4 py-2.5 text-sm font-semibold text-proiettore transition-colors hover:bg-proiettore/10">
+                Segna cosa porto
+              </button>
+            </form>
           </div>
         </section>
       )}
@@ -438,10 +527,10 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
       {/* ---------- VOTAZIONE ---------- */}
       {event.status === "open" && (
         <>
-          <form action={submitVotes.bind(null, eventId)} className="flex flex-col gap-8">
+          <form action={submitVotes.bind(null, eventId)} className="flex flex-col gap-4">
             <section aria-labelledby="vota-date">
               <p className="step-title mb-3" id="vota-date">
-                Atto I · Le date — spunta quando ci sei
+                Atto I · Quando ci sei?
               </p>
               {canManage && (
                 <VoteReminder
@@ -486,77 +575,72 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                 })}
               </ul>
             </section>
-
-            <section aria-labelledby="vota-film">
-              <p className="step-title mb-3" id="vota-film">
-                Atto II · Il film — spunta tutti quelli che ti vanno bene
-              </p>
-              {canManage && (
-                <VoteReminder
-                  label="Film"
-                  votedCount={invitedPeople.length - missingMovieNames.length}
-                  totalCount={invitedPeople.length}
-                  missingNames={missingMovieNames}
-                  copyUrl={`/serate/${eventId}?focus=film`}
-                />
-              )}
-              <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {eMovies.map((em) => {
-                  const m = ms.find((x) => x.id === em.movieId);
-                  if (!m) return null;
-                  const votes = mVotes.filter((v) => v.eventMovieId === em.id);
-                  const mine = votes.some((v) => v.userId === user.id);
-                  return (
-                    <li key={em.id}>
-                      <label className="stamp block w-full cursor-pointer overflow-hidden rounded-lg border-2 border-riga text-left opacity-85 hover:opacity-100 has-checked:border-proiettore has-checked:opacity-100">
-                        <input
-                          type="checkbox"
-                          name="movieIds"
-                          value={em.id}
-                          defaultChecked={mine}
-                          className="sr-only"
-                        />
-                        <Poster
-                          title={m.title}
-                          year={m.year}
-                          genres={m.genres}
-                          posterUrl={m.posterUrl}
-                          posterCredit={m.posterCredit}
-                          className="aspect-2/3 w-full"
-                        />
-                        <span className="block bg-sipario p-2">
-                          <span className="block truncate text-sm font-semibold">{m.title}</span>
-                          <span className="mt-0.5 block font-mono text-xs text-fumo">
-                            {votes.length} {votes.length === 1 ? "timbro" : "timbri"}
-                            {votes.length > 0 && ` · ${votes.map((v) => nameOf(v.userId)).join(", ")}`}
-                          </span>
-                          {em.addedBy && (
-                            <span className="mt-0.5 block font-mono text-xs text-proiettore/80">
-                              proposto da {nameOf(em.addedBy)}
-                            </span>
-                          )}
-                        </span>
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-
-            <div className="ticket ticket-glow flex flex-col gap-2 p-4">
+            <div className="flex justify-center">
               <button
                 type="submit"
-                className="titlecard rounded-lg bg-proiettore py-3 text-base text-notte-fonda transition-colors hover:bg-proiettore-acceso"
+                className="rounded-lg border border-proiettore px-5 py-2.5 text-sm font-semibold text-proiettore transition-colors hover:bg-proiettore/10"
               >
-                Vota!
+                Salva disponibilità
               </button>
-              <p className="text-center text-xs text-fumo">
-                {dVotes.some((v) => v.userId === user.id) || mVotes.some((v) => v.userId === user.id)
-                  ? "Hai già timbrato: la nuova scheda sostituisce la vecchia."
-                  : "La scheda si può correggere finché le votazioni sono aperte."}
-              </p>
             </div>
           </form>
+
+          <section aria-labelledby="vota-film">
+            <p className="step-title mb-3" id="vota-film">
+              Atto II · Quale film scegli?
+            </p>
+            {canManage && (
+              <VoteReminder
+                label="Film"
+                votedCount={invitedPeople.length - missingMovieNames.length}
+                totalCount={invitedPeople.length}
+                missingNames={missingMovieNames}
+                copyUrl={`/serate/${eventId}?focus=film`}
+              />
+            )}
+            <div className="mt-3">
+              <ConsensusBallot
+                eventId={eventId}
+                candidates={eMovies.flatMap((candidate) => {
+                  const movie = ms.find((item) => item.id === candidate.movieId);
+                  return movie
+                    ? [
+                        {
+                          id: candidate.id,
+                          title: movie.title,
+                          year: movie.year,
+                          providers: [
+                            ...new Set(
+                              availability
+                                .filter((item) => item.movieId === movie.id)
+                                .map((item) => item.provider)
+                            ),
+                          ],
+                          score: consensusScore(candidate.id),
+                          vetoes: vetoCount(candidate.id),
+                        },
+                      ]
+                    : [];
+                })}
+                initialRanks={ballotItems
+                  .filter(
+                    (item) =>
+                      item.ballotId ===
+                        ballots.find((ballot) => ballot.userId === user.id)?.id && item.rank
+                  )
+                  .sort((a, b) => a.rank! - b.rank!)
+                  .map((item) => item.eventMovieId)}
+                initialVetoes={ballotItems
+                  .filter(
+                    (item) =>
+                      item.ballotId ===
+                        ballots.find((ballot) => ballot.userId === user.id)?.id && item.veto
+                  )
+                  .map((item) => item.eventMovieId)}
+                ballotsCount={ballots.length}
+              />
+            </div>
+          </section>
 
           <ProposeDate eventId={eventId} />
 
@@ -570,19 +654,10 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
               <p className="step-title mb-3" id="chiudi">
                 Regia · chiudi le votazioni
               </p>
-              {tiedTop.length >= 2 && (
-                <form
-                  action={async () => {
-                    "use server";
-                    await startRunoff(eventId);
-                  }}
-                  className="mb-3"
-                >
-                  <button className="w-full rounded-lg border border-proiettore py-2.5 font-semibold text-proiettore transition-colors hover:bg-proiettore/10">
-                    Vai al ballottaggio · {tiedTop.length} film pari
-                  </button>
-                </form>
-              )}
+              <p className="mb-4 text-sm text-fumo">
+                La proposta mette in testa il punteggio più alto e, a parità, meno veti.
+                Puoi sempre scegliere diversamente.
+              </p>
               <form action={closeEvent.bind(null, eventId)} className="flex flex-col gap-3">
                 <label className="flex flex-col gap-1.5">
                   <span className="text-sm text-fumo">Data scelta</span>
@@ -610,7 +685,7 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                       const m = ms.find((x) => x.id === em.movieId);
                       return (
                         <option key={em.id} value={em.movieId}>
-                          {m?.title} — {mVotes.filter((v) => v.eventMovieId === em.id).length} timbri
+                          {m?.title} — {consensusScore(em.id)} punti · {vetoCount(em.id)} veti
                         </option>
                       );
                     })}
@@ -909,6 +984,25 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
                               )
                             )}
                           </div>
+                          <ReviewThread
+                            eventId={eventId}
+                            ratingUserId={r.userId}
+                            currentUserId={user.id}
+                            canComment={
+                              r.userId !== user.id &&
+                              att.some((person) => person.userId === user.id)
+                            }
+                            comments={comments
+                              .filter((comment) => comment.ratingUserId === r.userId)
+                              .map((comment) => ({
+                                id: comment.id,
+                                authorUserId: comment.authorUserId,
+                                authorName: nameOf(comment.authorUserId),
+                                body: comment.body,
+                                spoiler: comment.spoiler,
+                                createdAt: comment.createdAt,
+                              }))}
+                          />
                         </>
                       )}
                     </li>
@@ -981,6 +1075,20 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
         <p className="ticket p-6 text-center text-sm text-fumo">
           Serata annullata. <Link href="/serate/nuova" className="text-proiettore underline">Organizzane un&apos;altra</Link>.
         </p>
+      )}
+      </div>
+      {(event.status === "open" || event.status === "runoff") && (
+        <EventDiscussion
+          eventId={eventId}
+          currentUserId={user.id}
+          messages={discussionMessages.map((message) => ({
+            id: message.id,
+            userId: message.userId,
+            userName: nameOf(message.userId),
+            body: message.body,
+            createdAt: message.createdAt,
+          }))}
+        />
       )}
     </div>
   );

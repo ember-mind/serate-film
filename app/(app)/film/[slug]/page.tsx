@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { movies, watchlist } from "@/db/schema";
+import { movieAvailability, movies, watchlist } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import {
   addToWatchlist,
@@ -53,6 +53,9 @@ export default async function FilmPage({ params }: { params: Promise<{ slug: str
   const personal = (await getPersonalMovieStatuses(user.id)).get(movie.id);
   const beforeWatchingNotes = getBeforeWatchingNotes(movie);
   const awards = parseAwards(movie.awards);
+  const availability = await db.query.movieAvailability.findMany({
+    where: eq(movieAvailability.movieId, movie.id),
+  });
   const hasExternalRatings = Boolean(movie.imdbRating || movie.rottenTomatoesScore);
   const metadataDate = movie.metadataUpdatedAt
     ? new Intl.DateTimeFormat("it-IT", {
@@ -249,6 +252,70 @@ export default async function FilmPage({ params }: { params: Promise<{ slug: str
               channel={movie.trailerChannel}
             />
           )}
+
+          <section className="mt-6 border-t border-riga pt-5" aria-labelledby="dove-si-vede">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 id="dove-si-vede" className="eyebrow">
+                Dove si vede
+              </h2>
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-fumo">
+                Italia
+              </span>
+            </div>
+            {availability.length > 0 ? (
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {availability.map((item) => {
+                  const label =
+                    item.type === "subscription"
+                      ? "In abbonamento"
+                      : item.type === "rent"
+                        ? "Noleggio"
+                        : item.type === "buy"
+                          ? "Acquisto"
+                          : item.type === "cinema"
+                            ? "Al cinema"
+                            : "Gratis";
+                  const content = (
+                    <>
+                      <span>
+                        <strong className="block text-sm text-schermo">{item.provider}</strong>
+                        <span className="text-xs text-fumo">
+                          {label}
+                          {item.price ? ` · ${item.price}` : ""}
+                        </span>
+                      </span>
+                      {item.url && <span className="text-proiettore">Apri ↗</span>}
+                    </>
+                  );
+                  return (
+                    <li key={item.id}>
+                      {item.url ? (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-between rounded-lg border border-riga bg-notte px-3 py-2.5 transition-colors hover:border-proiettore"
+                        >
+                          {content}
+                        </a>
+                      ) : (
+                        <div className="flex items-center justify-between rounded-lg border border-riga bg-notte px-3 py-2.5">
+                          {content}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-fumo">
+                Disponibilità non ancora verificata. Controlla il tuo servizio prima della serata.
+              </p>
+            )}
+            <p className="mt-2 text-[11px] text-fumo/70">
+              Snapshot editoriale: disponibilità e prezzi possono cambiare.
+            </p>
+          </section>
 
           {movie.synopsis && (
             <div className="mt-6 border-t border-riga pt-5">

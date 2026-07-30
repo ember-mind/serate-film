@@ -49,6 +49,44 @@ export default async function NotificationsPage() {
     const event = eventRows.find((item) => item.id === eventId);
     return movieRows.find((movie) => movie.id === event?.chosenMovieId)?.title;
   };
+  const notificationCopy = (item: (typeof items)[number], actor: string) => {
+    const event = eventRows.find((row) => row.id === item.eventId);
+    const movieTitle = eventMovie(item.eventId);
+    const eventTitle = movieTitle ?? event?.title ?? "una serata";
+    if (item.type === "event_invite") {
+      return {
+        text: `${actor} ti ha invitato a ${eventTitle}.`,
+        icon: "✉",
+        href: `/serate/${item.eventId}`,
+      };
+    }
+    if (item.type === "review_reply") {
+      return {
+        text: `${actor} ha risposto alla tua pagella${movieTitle ? ` di ${movieTitle}` : ""}.`,
+        icon: "↳",
+        href: `/serate/${item.eventId}#pagelle`,
+      };
+    }
+    if (item.type === "mention") {
+      return {
+        text: `${actor} ti ha menzionato in ${eventTitle}.`,
+        icon: "@",
+        href: `/serate/${item.eventId}`,
+      };
+    }
+    if (item.type === "rsvp_reminder") {
+      return {
+        text: `${actor} aspetta la tua conferma per ${eventTitle}.`,
+        icon: "✓",
+        href: `/serate/${item.eventId}`,
+      };
+    }
+    return {
+      text: `${actor} ha messo Mi piace alla tua pagella${movieTitle ? ` di ${movieTitle}` : ""}.`,
+      icon: "♥",
+      href: `/serate/${item.eventId}#pagelle`,
+    };
+  };
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -68,12 +106,12 @@ export default async function NotificationsPage() {
         <ul className="flex flex-col gap-2">
           {items.map((item) => {
             const actor = actorName(item.actorUserId);
-            const movieTitle = eventMovie(item.eventId);
+            const content = notificationCopy(item, actor);
 
             return (
               <li key={item.id}>
                 <Link
-                  href={`/serate/${item.eventId}#pagelle`}
+                  href={content.href}
                   className={`ticket flex items-center gap-3 p-4 transition-colors hover:border-proiettore/60 ${
                     item.readAt ? "" : "border-proiettore/60 bg-proiettore/5"
                   }`}
@@ -81,15 +119,14 @@ export default async function NotificationsPage() {
                   <Avatar id={item.actorUserId} name={actor} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm text-schermo">
-                      <strong>{actor}</strong> ha messo Mi piace alla tua pagella
-                      {movieTitle ? ` di ${movieTitle}` : ""}.
+                      {content.text}
                     </span>
                     <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.12em] text-fumo">
                       {formatNotificationDate(item.createdAt)}
                     </span>
                   </span>
                   <span aria-hidden className="text-proiettore">
-                    ♥
+                    {content.icon}
                   </span>
                 </Link>
               </li>

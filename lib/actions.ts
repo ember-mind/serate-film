@@ -8,7 +8,10 @@ import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "@/db";
 import {
   users,
+  userProfiles,
   userFriends,
+  circleMembers,
+  circles,
   movies,
   watchlist,
   events,
@@ -27,10 +30,12 @@ import {
   notifications,
   suggestions,
   userSeenMovies,
+  eventRooms,
+  screeningLicenses,
 } from "@/db/schema";
 import { createSession, destroySession } from "@/lib/session";
 import { requireUser, requireAdmin } from "@/lib/auth";
-import { canSee, inviteesByEvent } from "@/lib/invites";
+import { canAccessEvent } from "@/lib/access";
 import { sanitizeNext } from "@/lib/nav";
 import { fetchMovieMetadata } from "@/lib/movie-metadata.mjs";
 
@@ -89,14 +94,15 @@ export async function signupWithInvite(
   } catch {
     return { error: "Username già in uso. Provane un altro." };
   }
+  await db
+    .insert(userProfiles)
+    .values({
+      userId: newUser.id,
+      slug: `${username}-${newUser.id}`,
+    })
+    .onConflictDoNothing();
 
-  const currentInvitees = await db.query.eventInvitees.findMany({
-    where: eq(eventInvitees.eventId, event.id),
-  });
-  // Nessuna riga indica serata pubblica: aggiungere una riga la renderebbe
-  // involontariamente privata. Per serate riservate, invece, il link ammette
-  // il nuovo account alla lista.
-  if (currentInvitees.length > 0) {
+  if (event.access === "invite_only" || event.access === "circle") {
     await db
       .insert(eventInvitees)
       .values({ eventId: event.id, userId: newUser.id })
@@ -289,19 +295,36 @@ export async function createEvent(_prev: { error?: string } | undefined, formDat
   if (movieIds.length < 1) return { error: "Scegli almeno un film dalla watchlist." };
   if (movieIds.length > 8) return { error: "Massimo 8 film in rosa." };
 
-  const rawVisibility = String(formData.get("visibility") ?? "friends");
-  const visibility =
-    rawVisibility === "public" || rawVisibility === "private" || rawVisibility === "friends"
-      ? rawVisibility
-      : "friends";
+  const rawAccess = String(formData.get("access") ?? "");
+  const legacyVisibility = String(formData.get("visibility") ?? "friends");
+  const access =
+    rawAccess === "invite_only" ||
+    rawAccess === "circle" ||
+    rawAccess === "club" ||
+    rawAccess === "public"
+      ? rawAccess
+      : legacyVisibility === "public"
+        ? "club"
+        : "invite_only";
+  const rawMode = String(formData.get("viewingMode") ?? "in_person");
+  const viewingMode =
+    rawMode === "youtube" ||
+    rawMode === "watch_along" ||
+    rawMode === "licensed_public"
+      ? rawMode
+      : "in_person";
+  const rsvpDeadline = String(formData.get("rsvpDeadline") ?? "").trim() || null;
+  const votingDeadline = String(formData.get("votingDeadline") ?? "").trim() || null;
+  const discoverable = access === "public" && formData.get("discoverable") === "on";
   let inviteeIds: number[] = [];
+  let notificationRecipientIds: number[] = [];
 
-  if (visibility === "friends") {
+  if (access === "invite_only" && legacyVisibility === "friends") {
     const friends = await db.query.userFriends.findMany({
       where: eq(userFriends.userId, user.id),
     });
     inviteeIds = friends.map((friend) => friend.friendUserId);
-  } else if (visibility === "private") {
+  } else if (access === "invite_only") {
     const allUsers = await db.query.users.findMany();
     const validIds = new Set(allUsers.map((person) => person.id));
     inviteeIds = [
@@ -313,19 +336,141 @@ export async function createEvent(_prev: { error?: string } | undefined, formDat
       ),
     ];
   }
-  const restricted = visibility !== "public";
+  if (access === "invite_only") notificationRecipientIds = inviteeIds;
+
+  let circleId: number | null = null;
+  if (access === "circle") {
+    const requestedCircleId = Number(formData.get("circleId"));
+    const membership = await db.query.circleMembers.findFirst({
+      where: and(
+        eq(circleMembers.circleId, requestedCircleId),
+        eq(circleMembers.userId, user.id),
+        eq(circleMembers.status, "active")
+      ),
+    });
+    const circle = await db.query.circles.findFirst({
+      where: eq(circles.id, requestedCircleId),
+    });
+    if (!circle || (!membership && circle.ownerId !== user.id && !user.isAdmin)) {
+      return { error: "Scegli un circolo di cui fai parte." };
+    }
+    circleId = circle.id;
+    const members = await db.query.circleMembers.findMany({
+      where: and(
+        eq(circleMembers.circleId, circle.id),
+        eq(circleMembers.status, "active")
+      ),
+    });
+    notificationRecipientIds = members.map((member) => member.userId);
+  }
+
+  const safeUrl = (name: string) => {
+    const value = String(formData.get(name) ?? "").trim();
+    if (!value) return null;
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+    } catch {
+      return null;
+    }
+  };
+  const youtubeVideoId = String(formData.get("youtubeVideoId") ?? "")
+    .trim()
+    .replace(/^.*(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{11}).*$/, "$1");
+  const externalPlaybackUrl = safeUrl("externalPlaybackUrl");
+  const streamerUrl = safeUrl("streamerUrl");
+  const rightsSourceUrl = safeUrl("rightsSourceUrl");
+  if (viewingMode === "youtube" && !/^[A-Za-z0-9_-]{11}$/.test(youtubeVideoId)) {
+    return { error: "Inserisci un link o ID YouTube valido." };
+  }
+  if (viewingMode === "youtube" && !rightsSourceUrl) {
+    return { error: "Indica la fonte che autorizza la proiezione YouTube." };
+  }
+  if (viewingMode === "watch_along" && !externalPlaybackUrl) {
+    return { error: "Inserisci il link alla piattaforma dove ciascuno vedrà il film." };
+  }
 
   const [event] = await db
     .insert(events)
-    .values({ title, location, startTime, createdBy: user.id })
+    .values({
+      title,
+      location,
+      startTime,
+      createdBy: user.id,
+      access,
+      circleId,
+      discoverable,
+      viewingMode,
+      rsvpDeadline,
+      votingDeadline,
+      movieDecisionMethod: "ranked",
+    })
     .returning();
   await db.insert(eventDates).values(dates.map((date) => ({ eventId: event.id, date })));
   await db.insert(eventMovies).values(movieIds.map((movieId) => ({ eventId: event.id, movieId })));
-  if (restricted) {
+  if (access === "invite_only") {
     const withCreator = [...new Set([...inviteeIds, user.id])];
     await db
       .insert(eventInvitees)
       .values(withCreator.map((userId) => ({ eventId: event.id, userId })));
+  }
+  const notifiedUsers = [
+    ...new Set(notificationRecipientIds.filter((userId) => userId !== user.id)),
+  ];
+  if (notifiedUsers.length > 0) {
+    await db
+      .insert(notifications)
+      .values(
+        notifiedUsers.map((userId) => ({
+          userId,
+          actorUserId: user.id,
+          type: "event_invite" as const,
+          eventId: event.id,
+        }))
+      )
+      .onConflictDoUpdate({
+        target: [
+          notifications.userId,
+          notifications.actorUserId,
+          notifications.type,
+          notifications.eventId,
+        ],
+        set: { readAt: null, createdAt: new Date().toISOString() },
+      });
+  }
+  if (viewingMode !== "in_person") {
+    await db.insert(eventRooms).values({
+      eventId: event.id,
+      mode: viewingMode,
+      mediaProvider:
+        viewingMode === "youtube"
+          ? "youtube"
+          : viewingMode === "licensed_public"
+            ? "licensed"
+            : "external",
+      youtubeVideoId: viewingMode === "youtube" ? youtubeVideoId : null,
+      externalPlaybackUrl,
+      streamerUrl,
+      rightsBasis:
+        viewingMode === "youtube"
+          ? formData.get("rightsBasis") === "creator_owned"
+            ? "creator_owned"
+            : "public_domain"
+          : viewingMode === "licensed_public"
+            ? "licensed"
+            : "consumer_account",
+      rightsSourceUrl,
+    });
+  }
+  if (viewingMode === "licensed_public") {
+    const capacity = Math.min(10000, Math.max(1, Number(formData.get("capacity")) || 1));
+    await db.insert(screeningLicenses).values({
+      eventId: event.id,
+      territory: String(formData.get("territory") ?? "IT").trim().slice(0, 8) || "IT",
+      capacity,
+      reference: String(formData.get("licenseReference") ?? "").trim().slice(0, 120) || null,
+      evidenceUrl: safeUrl("licenseEvidenceUrl"),
+    });
   }
   await db
     .insert(eventInviteLinks)
@@ -365,10 +510,7 @@ export async function acceptEventInvite(token: string) {
     : null;
   if (!invite || !event || event.status === "cancelled") redirect("/serate");
 
-  const currentInvitees = await db.query.eventInvitees.findMany({
-    where: eq(eventInvitees.eventId, event.id),
-  });
-  if (currentInvitees.length > 0) {
+  if (event.access === "invite_only" || event.access === "circle") {
     await db
       .insert(eventInvitees)
       .values({ eventId: event.id, userId: user.id })
@@ -382,8 +524,7 @@ export async function saveEventContribution(eventId: number, formData: FormData)
   const user = await requireUser();
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event || event.status === "done" || event.status === "cancelled") return;
-  const invitees = (await inviteesByEvent([eventId])).get(eventId);
-  if (!canSee(event, invitees, user)) return;
+  if (!(await canAccessEvent(event, user))) return;
 
   const item = String(formData.get("item") ?? "").trim().slice(0, 160);
   if (!item) {
@@ -435,8 +576,7 @@ export async function toggleEventNeedClaim(eventId: number, needId: number) {
     }),
   ]);
   if (!event || !need || event.status === "done" || event.status === "cancelled") return;
-  const invitees = (await inviteesByEvent([eventId])).get(eventId);
-  if (!canSee(event, invitees, user)) return;
+  if (!(await canAccessEvent(event, user))) return;
 
   if (need.claimedBy === user.id) {
     await db
@@ -470,8 +610,7 @@ export async function proposeEventMovie(
   const user = await requireUser();
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event || event.status !== "open") return { error: "Le votazioni sono chiuse." };
-  const invitees = (await inviteesByEvent([eventId])).get(eventId);
-  if (!canSee(event, invitees, user)) return { error: "Serata su invito." };
+  if (!(await canAccessEvent(event, user))) return { error: "Serata su invito." };
 
   const movieId = Number(formData.get("movieId"));
   const movie = await db.query.movies.findFirst({ where: eq(movies.id, movieId) });
@@ -495,8 +634,7 @@ export async function proposeEventDate(
   const user = await requireUser();
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event || event.status !== "open") return { error: "Le votazioni sono chiuse." };
-  const invitees = (await inviteesByEvent([eventId])).get(eventId);
-  if (!canSee(event, invitees, user)) return { error: "Serata su invito." };
+  if (!(await canAccessEvent(event, user))) return { error: "Serata su invito." };
 
   const date = String(formData.get("date") ?? "").trim();
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
@@ -522,8 +660,7 @@ export async function submitVotes(eventId: number, formData: FormData) {
   const user = await requireUser();
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event || event.status !== "open") return;
-  const invitees = (await inviteesByEvent([eventId])).get(eventId);
-  if (!canSee(event, invitees, user)) return;
+  if (!(await canAccessEvent(event, user))) return;
 
   const pickedDates = new Set(formData.getAll("dateIds").map(Number));
   const pickedMovies = new Set(formData.getAll("movieIds").map(Number));
@@ -605,8 +742,7 @@ export async function submitRunoffVote(eventId: number, formData: FormData) {
   const user = await requireUser();
   const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
   if (!event || event.status !== "runoff") return;
-  const invitees = (await inviteesByEvent([eventId])).get(eventId);
-  if (!canSee(event, invitees, user)) return;
+  if (!(await canAccessEvent(event, user))) return;
 
   const eventMovieId = Number(formData.get("eventMovieId"));
   const ems = await db.query.eventMovies.findMany({ where: eq(eventMovies.eventId, eventId) });
@@ -706,6 +842,12 @@ export async function markWatched(eventId: number, formData: FormData) {
 
 export async function rateEvent(eventId: number, formData: FormData) {
   const user = await requireUser();
+  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
+  if (!event || event.status !== "done" || !(await canAccessEvent(event, user))) return;
+  const attended = await db.query.attendance.findFirst({
+    where: and(eq(attendance.eventId, eventId), eq(attendance.userId, user.id)),
+  });
+  if (!attended) return;
   const stars = Number(formData.get("stars"));
   const comment = String(formData.get("comment") ?? "").trim() || null;
   if (stars < 1 || stars > 5) return;
@@ -748,8 +890,7 @@ export async function toggleReviewLike(eventId: number, reviewUserId: number) {
   ]);
   if (!event || event.status !== "done" || !review?.comment) return;
 
-  const invitees = (await inviteesByEvent([eventId])).get(eventId);
-  if (!canSee(event, invitees, user)) return;
+  if (!(await canAccessEvent(event, user))) return;
 
   const existing = await db.query.reviewLikes.findFirst({
     where: and(

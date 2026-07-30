@@ -11,11 +11,11 @@ type NavItem = {
 };
 
 const desktopItems: NavItem[] = [
-  { href: "/", label: "Stasera", paths: ["/"] },
+  { href: "/", label: "Stasera", paths: ["/", "/attivita", "/trova-film"] },
   { href: "/film", label: "Cineteca", paths: ["/film", "/watchlist", "/attori", "/registi"] },
-  { href: "/serate", label: "Proiezioni", paths: ["/serate"] },
-  { href: "/storico", label: "Registro", paths: ["/storico"] },
-  { href: "/io", label: "Io", paths: ["/io"] },
+  { href: "/serate", label: "Proiezioni", paths: ["/serate", "/storico"] },
+  { href: "/circoli", label: "Circoli", paths: ["/circoli", "/club", "/persone"] },
+  { href: "/io", label: "Io", paths: ["/io", "/admin"] },
 ];
 
 const mobileItems: NavItem[] = [
@@ -26,7 +26,6 @@ const mobileItems: NavItem[] = [
 ];
 
 export function Nav({
-  isAdmin,
   userName,
   unreadNotifications,
 }: {
@@ -35,9 +34,7 @@ export function Nav({
   unreadNotifications: number;
 }) {
   const pathname = usePathname();
-  const desktopLinks = isAdmin
-    ? [...desktopItems, { href: "/admin", label: "Regia", paths: ["/admin"] }]
-    : desktopItems;
+  const desktopLinks = desktopItems;
 
   const isActive = (item: NavItem) =>
     item.paths.some((path) => (path === "/" ? pathname === "/" : pathname.startsWith(path)));

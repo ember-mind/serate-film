@@ -1,13 +1,26 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { movies, users, userFriends, watchlist } from "@/db/schema";
+import {
+  circleMembers,
+  circles,
+  movies,
+  users,
+  userFriends,
+  watchlist,
+} from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { NewEventForm } from "./NewEventForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function NuovaSerataPage() {
+export default async function NuovaSerataPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ movieId?: string }>;
+}) {
   const user = await requireUser();
+  const { movieId: movieIdParam } = await searchParams;
+  const initialMovieId = Number(movieIdParam);
   const people = await db.query.users.findMany({ orderBy: asc(users.name) });
   const friends = await db.query.userFriends.findMany({
     where: eq(userFriends.userId, user.id),
@@ -21,6 +34,34 @@ export default async function NuovaSerataPage() {
   const all = await db.query.movies.findMany({
     orderBy: [desc(movies.year), asc(movies.title)],
   });
+  const memberships = await db.query.circleMembers.findMany({
+    where: and(
+      eq(circleMembers.userId, user.id),
+      eq(circleMembers.status, "active")
+    ),
+  });
+  const memberCircles =
+    memberships.length > 0
+      ? await db.query.circles.findMany({
+          where: inArray(
+            circles.id,
+            memberships.map((membership) => membership.circleId)
+          ),
+          orderBy: asc(circles.name),
+        })
+      : [];
+  const allCircleMembers =
+    memberCircles.length > 0
+      ? await db.query.circleMembers.findMany({
+          where: and(
+            inArray(
+              circleMembers.circleId,
+              memberCircles.map((circle) => circle.id)
+            ),
+            eq(circleMembers.status, "active")
+          ),
+        })
+      : [];
   // watchlist in testa (nell'ordine di aggiunta), poi il resto del catalogo
   const ordered = [
     ...all
@@ -50,6 +91,12 @@ export default async function NuovaSerataPage() {
           .filter((person) => person.id !== user.id)
           .map((person) => ({ id: person.id, name: person.name }))}
         friendIds={friendIds}
+        circles={memberCircles.map((circle) => ({
+          id: circle.id,
+          name: circle.name,
+          members: allCircleMembers.filter((member) => member.circleId === circle.id).length,
+        }))}
+        initialMovieId={Number.isInteger(initialMovieId) ? initialMovieId : undefined}
       />
     </div>
   );

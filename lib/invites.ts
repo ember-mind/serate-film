@@ -1,11 +1,12 @@
 import { inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { eventInvitees } from "@/db/schema";
+import { eventInvitees, events } from "@/db/schema";
+import { filterAccessibleEvents } from "@/lib/access";
 
-type Ev = { id: number; createdBy: number };
+type Ev = typeof events.$inferSelect;
 type U = { id: number; isAdmin: boolean };
 
-// eventId → lista invitati. Nessuna voce = serata aperta a tutti.
+// eventId → lista invitati espliciti. La visibilità resta in events.access.
 export async function inviteesByEvent(eventIds: number[]) {
   const map = new Map<number, number[]>();
   if (eventIds.length === 0) return map;
@@ -18,13 +19,6 @@ export async function inviteesByEvent(eventIds: number[]) {
   return map;
 }
 
-export function canSee(event: Ev, invitees: number[] | undefined, user: U) {
-  if (!invitees || invitees.length === 0) return true;
-  return user.isAdmin || event.createdBy === user.id || invitees.includes(user.id);
-}
-
 export async function filterVisible<T extends Ev>(evts: T[], user: U): Promise<T[]> {
-  if (evts.length === 0) return evts;
-  const map = await inviteesByEvent(evts.map((e) => e.id));
-  return evts.filter((e) => canSee(e, map.get(e.id), user));
+  return filterAccessibleEvents(evts, user);
 }

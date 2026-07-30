@@ -65,6 +65,15 @@ export default async function MyMoviesPage() {
         <Link href="/io/amici" className="rounded-full border border-riga px-3 py-1.5 text-fumo hover:text-schermo">
           Amici · {friends.length}
         </Link>
+        <Link href="/circoli" className="rounded-full border border-riga px-3 py-1.5 text-fumo hover:text-schermo">
+          Circoli
+        </Link>
+        <Link href={`/io/anno/${new Date().getFullYear()}`} className="rounded-full border border-riga px-3 py-1.5 text-fumo hover:text-schermo">
+          L&apos;anno del gruppo
+        </Link>
+        <Link href="/io/privacy" className="rounded-full border border-riga px-3 py-1.5 text-fumo hover:text-schermo">
+          Profilo e privacy
+        </Link>
         {user.isAdmin && (
           <Link href="/admin" className="rounded-full border border-riga px-3 py-1.5 text-fumo hover:text-schermo">
             Regia

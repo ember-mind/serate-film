@@ -1,7 +1,17 @@
 import Link from "next/link";
 import { eq, desc, asc, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { events, movies, users, watchlist } from "@/db/schema";
+import {
+  circleMembers,
+  events,
+  movies,
+  ratingComments,
+  ratings,
+  reviewLikes,
+  userFriends,
+  users,
+  watchlist,
+} from "@/db/schema";
 import { Poster } from "@/components/Poster";
 import { Avatar } from "@/components/Avatar";
 import { Cinepresa } from "@/components/Cinepresa";
@@ -54,11 +64,110 @@ export default async function HomePage() {
         })
       : [];
 
-  const people = await db.query.users.findMany({ orderBy: asc(users.name) });
-  const seen = await db.query.events.findMany({
-    where: eq(events.status, "done"),
-    orderBy: desc(events.chosenDate),
+  const [friendRows, myCircleMemberships] = await Promise.all([
+    db.query.userFriends.findMany({ where: eq(userFriends.userId, me.id) }),
+    db.query.circleMembers.findMany({ where: eq(circleMembers.userId, me.id) }),
+  ]);
+  const circleIds = myCircleMemberships
+    .filter((membership) => membership.status === "active")
+    .map((membership) => membership.circleId);
+  const sharedMemberships =
+    circleIds.length > 0
+      ? await db.query.circleMembers.findMany({
+          where: inArray(circleMembers.circleId, circleIds),
+        })
+      : [];
+  const socialIds = [
+    ...new Set([
+      me.id,
+      ...friendRows.map((friend) => friend.friendUserId),
+      ...sharedMemberships
+        .filter((membership) => membership.status === "active")
+        .map((membership) => membership.userId),
+    ]),
+  ];
+  const people = await db.query.users.findMany({
+    where: inArray(users.id, socialIds),
+    orderBy: asc(users.name),
   });
+  const seen = await filterVisible(
+    await db.query.events.findMany({
+      where: eq(events.status, "done"),
+      orderBy: desc(events.chosenDate),
+    }),
+    me
+  );
+  const visibleEventRows = [...scheduled, ...open, ...seen];
+  const visibleEventIds = [...new Set(visibleEventRows.map((event) => event.id))];
+  const [homeComments, homeLikes, homeRatings] =
+    visibleEventIds.length > 0
+      ? await Promise.all([
+          db.query.ratingComments.findMany({
+            where: inArray(ratingComments.eventId, visibleEventIds),
+            orderBy: desc(ratingComments.createdAt),
+            limit: 8,
+          }),
+          db.query.reviewLikes.findMany({
+            where: inArray(reviewLikes.eventId, visibleEventIds),
+            orderBy: desc(reviewLikes.createdAt),
+            limit: 8,
+          }),
+          db.query.ratings.findMany({
+            where: inArray(ratings.eventId, visibleEventIds),
+          }),
+        ])
+      : [[], [], []];
+  const nameOf = (userId: number) =>
+    people.find((person) => person.id === userId)?.name ?? "Qualcuno";
+  const activityItems = [
+    ...visibleEventRows.map((event) => ({
+      id: `event-${event.id}`,
+      at: event.createdAt,
+      href: `/serate/${event.id}`,
+      icon: event.viewingMode === "in_person" ? "🎬" : "◉",
+      title: `${nameOf(event.createdBy)} ha aperto ${event.title || "una nuova serata"}`,
+      detail:
+        event.status === "open"
+          ? "Data e film da decidere insieme"
+          : event.status === "scheduled"
+            ? "Serata confermata"
+            : "Serata conclusa",
+    })),
+    ...homeRatings.map((rating) => {
+      const event = seen.find((item) => item.id === rating.eventId);
+      return {
+        id: `rating-${rating.eventId}-${rating.userId}`,
+        at: event?.chosenDate ? `${event.chosenDate}T21:00:00` : event?.createdAt ?? "",
+        href: `/serate/${rating.eventId}#pagelle`,
+        icon: "★",
+        title: `${nameOf(rating.userId)} ha dato ${rating.stars}/5`,
+        detail: rating.comment || "Nuova pagella",
+      };
+    }),
+    ...homeComments.map((comment) => ({
+      id: `comment-${comment.id}`,
+      at: comment.createdAt,
+      href: `/serate/${comment.eventId}#pagelle`,
+      icon: "↳",
+      title: `${nameOf(comment.authorUserId)} ha risposto a ${nameOf(comment.ratingUserId)}`,
+      detail: comment.spoiler ? "Commento con spoiler" : comment.body,
+    })),
+    ...homeLikes.map((like) => ({
+      id: `like-${like.eventId}-${like.reviewUserId}-${like.userId}`,
+      at: like.createdAt,
+      href: `/serate/${like.eventId}#pagelle`,
+      icon: "♥",
+      title: `${nameOf(like.userId)} ha apprezzato una pagella`,
+      detail: `Di ${nameOf(like.reviewUserId)}`,
+    })),
+  ]
+    .filter((item) => item.at)
+    .sort(
+      (a, b) =>
+        new Date(b.at.replace(" ", "T")).getTime() -
+        new Date(a.at.replace(" ", "T")).getTime()
+    )
+    .slice(0, 3);
 
   // manifesti in corridoio: le ultime proiezioni appese alla parete
   const wallEvents = seen.filter((e) => e.chosenMovieId).slice(0, 4);
@@ -92,6 +201,33 @@ export default async function HomePage() {
               ? "Il cartellone è aperto: si vota."
               : "Lo schermo è bianco. Tocca a voi."}
         </p>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2" aria-label="Scorciatoie">
+        <Link
+          href="/trova-film"
+          className="ticket group p-4 transition-colors hover:border-proiettore"
+        >
+          <p className="text-xl" aria-hidden="true">✦</p>
+          <h2 className="mt-2 font-semibold text-schermo group-hover:text-proiettore">
+            Trova il film
+          </h2>
+          <p className="mt-1 text-xs leading-5 text-fumo">
+            Mood, durata e piattaforme: una risposta per la serata.
+          </p>
+        </Link>
+        <Link
+          href="/circoli"
+          className="ticket group p-4 transition-colors hover:border-proiettore"
+        >
+          <p className="text-xl" aria-hidden="true">◎</p>
+          <h2 className="mt-2 font-semibold text-schermo group-hover:text-proiettore">
+            I tuoi circoli
+          </h2>
+          <p className="mt-1 text-xs leading-5 text-fumo">
+            Le compagnie con cui torni a vedere film.
+          </p>
+        </Link>
       </section>
 
       {/* lo schermo: prossima proiezione */}
@@ -180,6 +316,56 @@ export default async function HomePage() {
           </ul>
         </section>
       )}
+
+      <section aria-labelledby="attivita-home">
+        <div className="mb-3 flex items-baseline justify-between">
+          <div>
+            <p className="eyebrow">Dal tuo giro</p>
+            <h2 id="attivita-home" className="mt-1 text-lg font-semibold text-schermo">
+              Attività amici
+            </h2>
+          </div>
+          <Link
+            href="/attivita"
+            className="font-mono text-xs uppercase tracking-[0.18em] text-fumo hover:text-schermo"
+          >
+            Tutte →
+          </Link>
+        </div>
+        {activityItems.length > 0 ? (
+          <ul className="grid gap-2">
+            {activityItems.map((item) => (
+              <li key={item.id}>
+                <Link
+                  href={item.href}
+                  className="ticket group flex items-center gap-3 p-3 transition-colors hover:border-proiettore/60"
+                >
+                  <span
+                    aria-hidden
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-proiettore/10 text-proiettore"
+                  >
+                    {item.icon}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-schermo group-hover:text-proiettore">
+                      {item.title}
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs text-fumo">{item.detail}</span>
+                  </span>
+                  <span aria-hidden className="text-fumo">→</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Link
+            href="/serate/nuova"
+            className="ticket block p-5 text-sm text-fumo transition-colors hover:border-proiettore"
+          >
+            Nessuna attività ancora. Apri prima serata →
+          </Link>
+        )}
+      </section>
 
       {/* ultimi film in watchlist */}
       <section aria-labelledby="watchlist-home" className="-mx-4">
