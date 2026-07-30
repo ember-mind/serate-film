@@ -398,14 +398,22 @@ export function NewEventForm({
               <button
                 type="button"
                 onClick={() => setInviteMode("friends")}
-                className={`rounded-lg px-3 py-2 text-xs ${inviteMode === "friends" ? "bg-proiettore text-notte-fonda" : "border border-riga text-fumo"}`}
+                className={`cursor-pointer rounded-lg px-3 py-2 text-xs transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
+                  inviteMode === "friends"
+                    ? "bg-proiettore text-notte-fonda shadow-sm hover:bg-proiettore-acceso hover:shadow-md"
+                    : "border border-riga text-fumo hover:border-proiettore/70 hover:bg-proiettore/10 hover:text-schermo"
+                }`}
               >
                 Tutti i miei amici ({friends.length})
               </button>
               <button
                 type="button"
                 onClick={() => setInviteMode("custom")}
-                className={`rounded-lg px-3 py-2 text-xs ${inviteMode === "custom" ? "bg-proiettore text-notte-fonda" : "border border-riga text-fumo"}`}
+                className={`cursor-pointer rounded-lg px-3 py-2 text-xs transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
+                  inviteMode === "custom"
+                    ? "bg-proiettore text-notte-fonda shadow-sm hover:bg-proiettore-acceso hover:shadow-md"
+                    : "border border-riga text-fumo hover:border-proiettore/70 hover:bg-proiettore/10 hover:text-schermo"
+                }`}
               >
                 Scelgo io
               </button>
@@ -439,15 +447,6 @@ export function NewEventForm({
           </div>
         )}
 
-        {access === "public" && (
-          <label className="mt-4 flex items-start gap-2 text-sm">
-            <input type="checkbox" name="discoverable" className="mt-1 accent-[#e8b84b]" />
-            <span>
-              Mostra nella scoperta
-              <span className="block text-xs text-fumo">Chiunque può trovare questa proiezione.</span>
-            </span>
-          </label>
-        )}
       </fieldset>
 
       <fieldset className="ticket p-5">

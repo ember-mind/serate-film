@@ -315,7 +315,7 @@ export async function createEvent(_prev: { error?: string } | undefined, formDat
       : "in_person";
   const rsvpDeadline = String(formData.get("rsvpDeadline") ?? "").trim() || null;
   const votingDeadline = String(formData.get("votingDeadline") ?? "").trim() || null;
-  const discoverable = access === "public" && formData.get("discoverable") === "on";
+  const discoverable = access === "public";
   let inviteeIds: number[] = [];
   let notificationRecipientIds: number[] = [];
 
