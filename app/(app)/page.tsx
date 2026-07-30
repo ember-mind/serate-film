@@ -292,7 +292,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      <section aria-labelledby="attivita-home">
+      <section aria-labelledby="attivita-home" className="min-w-0">
         <div className="mb-3 flex items-baseline justify-between">
           <div>
             <p className="eyebrow">Dal tuo giro</p>
@@ -308,12 +308,12 @@ export default async function HomePage() {
           </Link>
         </div>
         {activityItems.length > 0 ? (
-          <ul className="grid gap-2">
+          <ul className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2">
             {activityItems.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} className="min-w-0">
                 <Link
                   href={item.href}
-                  className="ticket group flex items-center gap-3 p-3 transition-colors hover:border-proiettore/60"
+                  className="ticket group flex min-w-0 items-center gap-3 p-3 transition-colors hover:border-proiettore/60"
                 >
                   <span
                     aria-hidden
@@ -327,7 +327,7 @@ export default async function HomePage() {
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-fumo">{item.detail}</span>
                   </span>
-                  <span aria-hidden className="text-fumo">→</span>
+                  <span aria-hidden className="shrink-0 text-fumo">→</span>
                 </Link>
               </li>
             ))}

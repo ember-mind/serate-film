@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { movies, suggestions, users } from "@/db/schema";
@@ -36,20 +35,6 @@ export default async function FilmPage() {
       <div className="apertura mb-8 text-center">
         <p className="titlecard-sub">L&apos;archivio della sala</p>
         <h1 className="titlecard mt-1 text-3xl text-schermo">La Cineteca</h1>
-        <nav
-          aria-label="Esplora la cineteca"
-          className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.18em]"
-        >
-          <Link href="/watchlist" className="text-proiettore hover:text-proiettore-acceso">
-            Watchlist
-          </Link>
-          <Link href="/attori" className="text-fumo hover:text-schermo">
-            Attori
-          </Link>
-          <Link href="/registi" className="text-fumo hover:text-schermo">
-            Registi
-          </Link>
-        </nav>
       </div>
 
       <div className="mb-4 flex flex-col gap-3">

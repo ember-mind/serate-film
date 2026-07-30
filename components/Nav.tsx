@@ -25,6 +25,13 @@ const mobileItems: NavItem[] = [
   { href: "/io", label: "Io", paths: ["/io", "/admin"] },
 ];
 
+const libraryItems = [
+  { href: "/film", label: "Film" },
+  { href: "/watchlist", label: "Watchlist" },
+  { href: "/attori", label: "Attori" },
+  { href: "/registi", label: "Registi" },
+];
+
 export function Nav({
   userName,
   unreadNotifications,
@@ -38,6 +45,8 @@ export function Nav({
 
   const isActive = (item: NavItem) =>
     item.paths.some((path) => (path === "/" ? pathname === "/" : pathname.startsWith(path)));
+  const isLibraryItemActive = (href: string) => pathname.startsWith(href);
+  const isInLibrary = libraryItems.some((item) => isLibraryItemActive(item.href));
 
   return (
     <>
@@ -68,6 +77,30 @@ export function Nav({
             <span className="eyebrow hidden sm:block">{userName}</span>
           </div>
         </div>
+        {isInLibrary && (
+          <nav
+            aria-label="Sezioni della cineteca"
+            className="mx-auto flex max-w-5xl justify-center gap-5 border-t border-riga/60 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.18em] sm:gap-8"
+          >
+            {libraryItems.map((item) => {
+              const active = isLibraryItemActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={
+                    active
+                      ? "text-proiettore"
+                      : "text-fumo transition-colors hover:text-schermo"
+                  }
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
       </header>
 
       {/* barra inferiore mobile */}
