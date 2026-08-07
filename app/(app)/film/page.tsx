@@ -3,8 +3,6 @@ import { db } from "@/db";
 import { movies, suggestions, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { dismissSuggestion } from "@/lib/actions";
-import { AddMovieForm } from "./AddMovieForm";
-import { SuggestForm } from "./SuggestForm";
 import { CatalogBrowser, type CatalogMovie } from "./CatalogBrowser";
 import { getPersonalMovieStatuses } from "@/lib/personal-movies";
 
@@ -35,11 +33,6 @@ export default async function FilmPage() {
       <div className="apertura mb-8 text-center">
         <p className="titlecard-sub">L&apos;archivio della sala</p>
         <h1 className="titlecard mt-1 text-3xl text-schermo">La Cineteca</h1>
-      </div>
-
-      <div className="mb-4 flex flex-col gap-3">
-        <SuggestForm />
-        <AddMovieForm />
       </div>
 
       {pending.length > 0 && (

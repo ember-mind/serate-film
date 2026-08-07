@@ -1,8 +1,10 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import Link from "next/link";
 import { submitConsensusBallot } from "@/lib/event-experience-actions";
 import { Poster } from "@/components/Poster";
+import { filmSlug } from "@/lib/films";
 
 type Candidate = {
   id: number;
@@ -48,6 +50,12 @@ function choiceBreakdown(candidate: Candidate) {
       .filter(Boolean)
       .join(" · ") || "Nessuna preferenza"
   );
+}
+
+function availabilityCopy(candidate: Candidate) {
+  return candidate.providers.length > 0
+    ? `Dove si vede: ${candidate.providers.join(" · ")}`
+    : "Disponibilità da verificare";
 }
 
 export function ConsensusBallot({
@@ -203,8 +211,14 @@ export function ConsensusBallot({
                           className="aspect-2/3 w-full"
                         />
                         <div className="p-3 text-center">
-                          <p className="line-clamp-2 text-sm font-semibold text-schermo">
+                          <Link
+                            href={`/film/${filmSlug(candidate)}`}
+                            className="line-clamp-2 text-sm font-semibold text-schermo underline-offset-4 transition-colors hover:text-proiettore hover:underline focus-visible:text-proiettore focus-visible:outline-none focus-visible:underline"
+                          >
                             {candidate.title}
+                          </Link>
+                          <p className="mt-1 text-[11px] leading-relaxed text-proiettore/90">
+                            {availabilityCopy(candidate)}
                           </p>
                           <p className="mt-1 font-mono text-sm text-proiettore">
                             {candidate.score} {candidate.score === 1 ? "punto" : "punti"}
@@ -255,7 +269,15 @@ export function ConsensusBallot({
                       className="h-16 w-11 shrink-0 rounded-sm"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-schermo">{candidate.title}</p>
+                      <Link
+                        href={`/film/${filmSlug(candidate)}`}
+                        className="block truncate text-sm text-schermo underline-offset-4 transition-colors hover:text-proiettore hover:underline focus-visible:text-proiettore focus-visible:outline-none focus-visible:underline"
+                      >
+                        {candidate.title}
+                      </Link>
+                      <p className="mt-1 truncate text-xs text-proiettore/90">
+                        {availabilityCopy(candidate)}
+                      </p>
                       <p className="mt-1 truncate text-xs text-fumo">
                         {choiceBreakdown(candidate)}
                       </p>

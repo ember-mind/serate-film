@@ -8,12 +8,19 @@ import { getPersonalMovieStatuses } from "@/lib/personal-movies";
 import { Poster } from "@/components/Poster";
 import { filmSlug } from "@/lib/films";
 import { formatDateFull } from "@/lib/dates";
+import { getUserJourneyStats } from "@/lib/journeys";
 
 export const dynamic = "force-dynamic";
 
 export default async function MyMoviesPage() {
   const user = await requireUser();
-  const statuses = await getPersonalMovieStatuses(user.id);
+  const [statuses, friends, journeyStats] = await Promise.all([
+    getPersonalMovieStatuses(user.id),
+    db.query.userFriends.findMany({
+      where: eq(userFriends.userId, user.id),
+    }),
+    getUserJourneyStats(user.id),
+  ]);
   const entries = [...statuses.entries()].sort((a, b) =>
     (b[1].watchedAt ?? "").localeCompare(a[1].watchedAt ?? "")
   );
@@ -23,9 +30,6 @@ export default async function MyMoviesPage() {
       ? await db.query.movies.findMany({ where: inArray(movies.id, movieIds) })
       : [];
   const togetherCount = entries.filter(([, status]) => status.together).length;
-  const friends = await db.query.userFriends.findMany({
-    where: eq(userFriends.userId, user.id),
-  });
 
   return (
     <div>
@@ -37,7 +41,7 @@ export default async function MyMoviesPage() {
 
       <section
         aria-label="Statistiche personali"
-        className="ticket mb-8 grid grid-cols-2 divide-x divide-riga p-5 text-center"
+        className="ticket mb-8 grid grid-cols-3 divide-x divide-riga p-5 text-center"
       >
         <div>
           <p className="titlecard text-2xl text-proiettore">{entries.length}</p>
@@ -46,6 +50,11 @@ export default async function MyMoviesPage() {
         <div>
           <p className="titlecard text-2xl text-proiettore">{togetherCount}</p>
           <p className="eyebrow mt-1">Con il club</p>
+        </div>
+        <div>
+          <p className="titlecard text-2xl text-proiettore">{journeyStats.level.level}</p>
+          <p className="eyebrow mt-1">{journeyStats.level.name}</p>
+          <p className="mt-1 font-mono text-[9px] text-fumo">{journeyStats.experience} XP</p>
         </div>
       </section>
 
@@ -61,6 +70,9 @@ export default async function MyMoviesPage() {
         </Link>
         <Link href="/registi" className="rounded-full border border-riga px-3 py-1.5 text-fumo hover:text-schermo">
           Registi
+        </Link>
+        <Link href="/percorsi" className="rounded-full border border-riga px-3 py-1.5 text-fumo hover:text-schermo">
+          Percorsi · {journeyStats.activeJourneys}
         </Link>
         <Link href="/io/amici" className="rounded-full border border-riga px-3 py-1.5 text-fumo hover:text-schermo">
           Amici · {friends.length}

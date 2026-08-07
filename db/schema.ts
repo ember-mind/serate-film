@@ -687,3 +687,77 @@ export const userSeenMovies = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.movieId] })]
 );
+
+// Sfide cinematografiche create da un membro a partire da una filmografia.
+// L'elenco dei film viene congelato in journey_movies al momento dell'avvio.
+export const journeys = sqliteTable(
+  "journeys",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    title: text("title").notNull(),
+    subjectType: text("subject_type", { enum: ["director", "actor"] }).notNull(),
+    subjectName: text("subject_name").notNull(),
+    subjectSlug: text("subject_slug").notNull(),
+    mode: text("mode", { enum: ["free", "chronological"] })
+      .notNull()
+      .default("chronological"),
+    createdBy: integer("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => [
+    uniqueIndex("journeys_creator_subject_mode_unique").on(
+      t.createdBy,
+      t.subjectType,
+      t.subjectSlug,
+      t.mode
+    ),
+  ]
+);
+
+export const journeyMovies = sqliteTable(
+  "journey_movies",
+  {
+    journeyId: integer("journey_id")
+      .notNull()
+      .references(() => journeys.id, { onDelete: "cascade" }),
+    movieId: integer("movie_id")
+      .notNull()
+      .references(() => movies.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.journeyId, t.movieId] }),
+    uniqueIndex("journey_movies_position_unique").on(t.journeyId, t.position),
+  ]
+);
+
+// Gli invitati non espongono i propri progressi finché non accettano.
+export const journeyMembers = sqliteTable(
+  "journey_members",
+  {
+    journeyId: integer("journey_id")
+      .notNull()
+      .references(() => journeys.id, { onDelete: "cascade" }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["owner", "member"] })
+      .notNull()
+      .default("member"),
+    status: text("status", { enum: ["invited", "active"] })
+      .notNull()
+      .default("invited"),
+    invitedBy: integer("invited_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    acceptedAt: text("accepted_at"),
+  },
+  (t) => [primaryKey({ columns: [t.journeyId, t.userId] })]
+);

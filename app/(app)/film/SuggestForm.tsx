@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { createSuggestion } from "@/lib/actions";
 
-export function SuggestForm() {
+export function SuggestForm({ autoFocus = false }: { autoFocus?: boolean }) {
   const [state, action, pending] = useActionState(createSuggestion, undefined);
 
   return (
@@ -14,6 +14,7 @@ export function SuggestForm() {
         maxLength={300}
         placeholder="Suggerisci un film — basta il titolo, anche vago"
         aria-label="Suggerisci un film"
+        autoFocus={autoFocus}
         className="w-full rounded-lg border border-riga bg-sipario px-4 py-2.5 text-sm text-schermo placeholder:text-fumo/60"
       />
       <button

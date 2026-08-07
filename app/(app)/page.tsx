@@ -4,6 +4,7 @@ import { db } from "@/db";
 import {
   circleMembers,
   events,
+  journeyMembers,
   movies,
   ratingComments,
   ratings,
@@ -59,10 +60,17 @@ export default async function HomePage() {
         })
       : [];
 
-  const [friendRows, myCircleMemberships] = await Promise.all([
+  const [friendRows, myCircleMemberships, myJourneyMemberships] = await Promise.all([
     db.query.userFriends.findMany({ where: eq(userFriends.userId, me.id) }),
     db.query.circleMembers.findMany({ where: eq(circleMembers.userId, me.id) }),
+    db.query.journeyMembers.findMany({ where: eq(journeyMembers.userId, me.id) }),
   ]);
+  const pendingJourneyInvites = myJourneyMemberships.filter(
+    (membership) => membership.status === "invited"
+  ).length;
+  const activeJourneys = myJourneyMemberships.filter(
+    (membership) => membership.status === "active"
+  ).length;
   const circleIds = myCircleMemberships
     .filter((membership) => membership.status === "active")
     .map((membership) => membership.circleId);
@@ -185,7 +193,7 @@ export default async function HomePage() {
         <Cinepresa />
       </div>
 
-      <section className="grid gap-3 sm:grid-cols-2" aria-label="Scorciatoie">
+      <section className="grid gap-3 sm:grid-cols-3" aria-label="Scorciatoie">
         <Link
           href="/serate/nuova"
           className="ticket group p-4 transition-colors hover:border-proiettore"
@@ -205,6 +213,22 @@ export default async function HomePage() {
           </h2>
           <p className="mt-1 text-xs leading-5 text-fumo">
             Le compagnie con cui torni a vedere film.
+          </p>
+        </Link>
+        <Link
+          href="/percorsi"
+          className="ticket group p-4 transition-colors hover:border-proiettore"
+        >
+          <p className="text-xl" aria-hidden="true">↗</p>
+          <h2 className="mt-2 font-semibold text-schermo group-hover:text-proiettore">
+            I tuoi percorsi
+          </h2>
+          <p className="mt-1 text-xs leading-5 text-fumo">
+            {pendingJourneyInvites > 0
+              ? `${pendingJourneyInvites} ${pendingJourneyInvites === 1 ? "invito da decidere" : "inviti da decidere"}`
+              : activeJourneys > 0
+                ? `${activeJourneys} ${activeJourneys === 1 ? "percorso attivo" : "percorsi attivi"}`
+                : "Scopri un regista o un attore film dopo film."}
           </p>
         </Link>
       </section>

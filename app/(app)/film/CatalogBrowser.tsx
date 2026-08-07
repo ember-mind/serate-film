@@ -10,6 +10,7 @@ import {
 } from "@/lib/actions";
 import { Poster } from "@/components/Poster";
 import { filmSlug } from "@/lib/films";
+import { SuggestForm } from "./SuggestForm";
 
 export type CatalogMovie = {
   id: number;
@@ -120,6 +121,7 @@ function Card({ m }: { m: CatalogMovie }) {
 export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
   const [query, setQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("");
+  const [suggestionOpen, setSuggestionOpen] = useState(false);
   const [shelf, setShelf] = useState<Shelf>("all");
   const q = query.trim().toLowerCase();
 
@@ -208,6 +210,30 @@ export function CatalogBrowser({ movies }: { movies: CatalogMovie[] }) {
             ))}
           </select>
         </label>
+      </div>
+
+      <div className="mb-5">
+        <button
+          type="button"
+          aria-expanded={suggestionOpen}
+          aria-controls="catalog-suggestion"
+          onClick={() => setSuggestionOpen((open) => !open)}
+          className="group flex items-center gap-2 text-sm text-proiettore transition-colors hover:text-proiettore-acceso"
+        >
+          <span aria-hidden className="text-lg leading-none">
+            {suggestionOpen ? "−" : "+"}
+          </span>
+          Manca un film?
+          <span className="text-fumo transition-colors group-hover:text-schermo">
+            Suggeriscilo
+          </span>
+        </button>
+        {suggestionOpen && (
+          <div id="catalog-suggestion" className="ticket mt-3 p-4">
+            <p className="eyebrow mb-3">Suggerisci un film</p>
+            <SuggestForm autoFocus />
+          </div>
+        )}
       </div>
 
       <fieldset className="mb-5 flex flex-wrap gap-2">

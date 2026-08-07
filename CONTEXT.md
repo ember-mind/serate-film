@@ -49,3 +49,19 @@ _Avoid_: reazione, cuore.
 **Notifica**: avviso personale generato da un’interazione di un altro membro. È in sospeso finché il destinatario non la apre.
 
 _Avoid_: alert, messaggio.
+
+**Percorso**: sfida cinematografica composta da un insieme definito di film legati a un regista o attore. Ogni membro avanza guardando per la prima volta i film inclusi e completa il percorso quando li ha visti tutti.
+
+_Avoid_: quest, missione.
+
+**Percorso cronologico**: percorso che suggerisce i film per anno di uscita. L’ordine guida la scelta successiva ma non impedisce progressi fuori sequenza.
+
+_Avoid_: ordine obbligatorio.
+
+**Percorso condiviso**: percorso affrontato da più membri, ciascuno con progressi personali visibili al gruppo.
+
+_Avoid_: progresso collettivo, missione di gruppo.
+
+**Esperienza**: punteggio personale ottenuto completando per la prima volta film inclusi nei percorsi e portando a termine i percorsi stessi.
+
+_Avoid_: punti, quando si intende la crescita di livello.

@@ -1,18 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { desc } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { ActorPortrait } from "@/components/ActorPortrait";
+import { JourneyStarter } from "@/components/JourneyStarter";
 import { Poster } from "@/components/Poster";
 import { db } from "@/db";
-import { movies } from "@/db/schema";
+import { journeys, movies } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { directorProfile, directorSlug, parseDirectors } from "@/lib/directors";
 import { filmSlug } from "@/lib/films";
+import { getJourneyFriends } from "@/lib/journeys";
 
 export const dynamic = "force-dynamic";
 
 export default async function DirectorPage({ params }: { params: Promise<{ slug: string }> }) {
-  await requireUser();
+  const user = await requireUser();
   const { slug } = await params;
   const allMovies = await db.query.movies.findMany({ orderBy: desc(movies.year) });
   const names = [
@@ -23,6 +25,16 @@ export default async function DirectorPage({ params }: { params: Promise<{ slug:
 
   const profile = directorProfile(name);
   const filmography = allMovies.filter((movie) => parseDirectors(movie.director).includes(name));
+  const [friends, existingJourneys] = await Promise.all([
+    getJourneyFriends(user.id),
+    db.query.journeys.findMany({
+      where: and(
+        eq(journeys.createdBy, user.id),
+        eq(journeys.subjectType, "director"),
+        eq(journeys.subjectSlug, slug)
+      ),
+    }),
+  ]);
   const facts = [
     profile?.birthDate ? { label: "Nascita", value: profile.birthDate } : null,
     profile?.deathDate ? { label: "Morte", value: profile.deathDate } : null,
@@ -117,6 +129,18 @@ export default async function DirectorPage({ params }: { params: Promise<{ slug:
           )}
         </div>
       </article>
+
+      <JourneyStarter
+        subjectType="director"
+        subjectSlug={slug}
+        subjectName={name}
+        movieCount={filmography.length}
+        friends={friends.map((friend) => ({ id: friend.id, name: friend.name }))}
+        existingJourneys={existingJourneys.map((journey) => ({
+          id: journey.id,
+          mode: journey.mode,
+        }))}
+      />
 
       <section className="mt-12" aria-labelledby="filmografia">
         <div className="mb-5 flex items-center gap-4">

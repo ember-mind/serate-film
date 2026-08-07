@@ -12,7 +12,11 @@ type NavItem = {
 
 const desktopItems: NavItem[] = [
   { href: "/", label: "Stasera", paths: ["/", "/attivita", "/trova-film"] },
-  { href: "/film", label: "Cineteca", paths: ["/film", "/watchlist", "/attori", "/registi"] },
+  {
+    href: "/film",
+    label: "Cineteca",
+    paths: ["/film", "/watchlist", "/attori", "/registi", "/percorsi"],
+  },
   { href: "/serate", label: "Proiezioni", paths: ["/serate", "/storico"] },
   { href: "/circoli", label: "Circoli", paths: ["/circoli", "/club", "/persone"] },
   { href: "/io", label: "Io", paths: ["/io", "/admin"] },
@@ -20,7 +24,11 @@ const desktopItems: NavItem[] = [
 
 const mobileItems: NavItem[] = [
   { href: "/", label: "Stasera", paths: ["/"] },
-  { href: "/film", label: "Cineteca", paths: ["/film", "/watchlist", "/attori", "/registi"] },
+  {
+    href: "/film",
+    label: "Cineteca",
+    paths: ["/film", "/watchlist", "/attori", "/registi", "/percorsi"],
+  },
   { href: "/serate", label: "Serate", paths: ["/serate", "/storico"] },
   { href: "/io", label: "Io", paths: ["/io", "/admin"] },
 ];
@@ -30,6 +38,7 @@ const libraryItems = [
   { href: "/watchlist", label: "Watchlist" },
   { href: "/attori", label: "Attori" },
   { href: "/registi", label: "Registi" },
+  { href: "/percorsi", label: "Percorsi" },
 ];
 
 export function Nav({

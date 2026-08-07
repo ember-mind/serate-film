@@ -1,9 +1,17 @@
 import Link from "next/link";
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { events, movies, notifications, users } from "@/db/schema";
+import {
+  events,
+  journeyMembers,
+  journeys,
+  movies,
+  notifications,
+  users,
+} from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { Avatar } from "@/components/Avatar";
+import { acceptJourney, declineJourney } from "@/lib/journey-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,20 +29,38 @@ function formatNotificationDate(value: string) {
 
 export default async function NotificationsPage() {
   const user = await requireUser();
-  const items = await db.query.notifications.findMany({
-    where: eq(notifications.userId, user.id),
-    orderBy: desc(notifications.createdAt),
-    limit: 50,
-  });
+  const [items, journeyInvites] = await Promise.all([
+    db.query.notifications.findMany({
+      where: eq(notifications.userId, user.id),
+      orderBy: desc(notifications.createdAt),
+      limit: 50,
+    }),
+    db.query.journeyMembers.findMany({
+      where: and(
+        eq(journeyMembers.userId, user.id),
+        eq(journeyMembers.status, "invited")
+      ),
+      orderBy: desc(journeyMembers.createdAt),
+    }),
+  ]);
 
-  const actorIds = [...new Set(items.map((item) => item.actorUserId))];
+  const actorIds = [
+    ...new Set([
+      ...items.map((item) => item.actorUserId),
+      ...journeyInvites.map((invite) => invite.invitedBy),
+    ]),
+  ];
   const eventIds = [...new Set(items.map((item) => item.eventId))];
-  const [actors, eventRows] = await Promise.all([
+  const journeyIds = journeyInvites.map((invite) => invite.journeyId);
+  const [actors, eventRows, journeyRows] = await Promise.all([
     actorIds.length > 0
       ? db.query.users.findMany({ where: inArray(users.id, actorIds) })
       : Promise.resolve([]),
     eventIds.length > 0
       ? db.query.events.findMany({ where: inArray(events.id, eventIds) })
+      : Promise.resolve([]),
+    journeyIds.length > 0
+      ? db.query.journeys.findMany({ where: inArray(journeys.id, journeyIds) })
       : Promise.resolve([]),
   ]);
   const movieIds = [
@@ -95,7 +121,7 @@ export default async function NotificationsPage() {
         <h1 className="titlecard mt-1 text-3xl text-schermo">Notifiche</h1>
       </div>
 
-      {items.length === 0 ? (
+      {items.length === 0 && journeyInvites.length === 0 ? (
         <div className="ticket p-6 text-center">
           <p className="text-sm text-fumo">Nessuna notifica.</p>
           <Link href="/" className="mt-4 inline-block text-sm text-proiettore underline">
@@ -103,36 +129,93 @@ export default async function NotificationsPage() {
           </Link>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {items.map((item) => {
-            const actor = actorName(item.actorUserId);
-            const content = notificationCopy(item, actor);
+        <div className="grid gap-8">
+          {journeyInvites.length > 0 && (
+            <section aria-labelledby="notification-journey-invites">
+              <div className="mb-3 flex items-center gap-3">
+                <h2 id="notification-journey-invites" className="eyebrow text-proiettore">
+                  Inviti ai percorsi
+                </h2>
+                <span className="h-px flex-1 bg-riga" aria-hidden />
+                <span className="eyebrow">{journeyInvites.length}</span>
+              </div>
+              <ul className="flex flex-col gap-2">
+                {journeyInvites.map((invite) => {
+                  const journey = journeyRows.find((item) => item.id === invite.journeyId);
+                  if (!journey) return null;
+                  const actor = actorName(invite.invitedBy);
+                  return (
+                    <li key={invite.journeyId} className="ticket border-proiettore/60 bg-proiettore/5 p-4">
+                      <div className="flex items-start gap-3">
+                        <Avatar id={invite.invitedBy} name={actor} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-schermo">
+                            {actor} ti invita a <strong>{journey.title}</strong>.
+                          </p>
+                          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-fumo">
+                            {formatNotificationDate(invite.createdAt)}
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <form action={acceptJourney.bind(null, journey.id)}>
+                              <button className="rounded-lg bg-proiettore px-3 py-2 text-xs font-semibold text-notte-fonda">
+                                Accetta
+                              </button>
+                            </form>
+                            <Link
+                              href={`/percorsi/${journey.id}`}
+                              className="rounded-lg border border-riga px-3 py-2 text-xs text-schermo transition-colors hover:border-proiettore"
+                            >
+                              Guarda percorso
+                            </Link>
+                            <form action={declineJourney.bind(null, journey.id)}>
+                              <button className="rounded-lg px-3 py-2 text-xs text-fumo transition-colors hover:text-velluto">
+                                Rifiuta
+                              </button>
+                            </form>
+                          </div>
+                        </div>
+                        <span aria-hidden className="text-proiettore">↗</span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
 
-            return (
-              <li key={item.id}>
-                <Link
-                  href={content.href}
-                  className={`ticket flex items-center gap-3 p-4 transition-colors hover:border-proiettore/60 ${
-                    item.readAt ? "" : "border-proiettore/60 bg-proiettore/5"
-                  }`}
-                >
-                  <Avatar id={item.actorUserId} name={actor} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm text-schermo">
-                      {content.text}
-                    </span>
-                    <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.12em] text-fumo">
-                      {formatNotificationDate(item.createdAt)}
-                    </span>
-                  </span>
-                  <span aria-hidden className="text-proiettore">
-                    {content.icon}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+          {items.length > 0 && (
+            <ul className="flex flex-col gap-2">
+              {items.map((item) => {
+                const actor = actorName(item.actorUserId);
+                const content = notificationCopy(item, actor);
+
+                return (
+                  <li key={item.id}>
+                    <Link
+                      href={content.href}
+                      className={`ticket flex items-center gap-3 p-4 transition-colors hover:border-proiettore/60 ${
+                        item.readAt ? "" : "border-proiettore/60 bg-proiettore/5"
+                      }`}
+                    >
+                      <Avatar id={item.actorUserId} name={actor} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm text-schermo">
+                          {content.text}
+                        </span>
+                        <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.12em] text-fumo">
+                          {formatNotificationDate(item.createdAt)}
+                        </span>
+                      </span>
+                      <span aria-hidden className="text-proiettore">
+                        {content.icon}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );

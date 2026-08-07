@@ -228,6 +228,8 @@ export async function markMovieSeen(movieId: number) {
   revalidatePath("/film");
   revalidatePath("/film/[slug]", "page");
   revalidatePath("/io");
+  revalidatePath("/percorsi");
+  revalidatePath("/percorsi/[id]", "page");
 }
 
 export async function unmarkMovieSeen(movieId: number) {
@@ -239,6 +241,8 @@ export async function unmarkMovieSeen(movieId: number) {
   revalidatePath("/film");
   revalidatePath("/film/[slug]", "page");
   revalidatePath("/io");
+  revalidatePath("/percorsi");
+  revalidatePath("/percorsi/[id]", "page");
 }
 
 // ---------- amici ----------
@@ -944,6 +948,8 @@ export async function markWatched(eventId: number, formData: FormData) {
   revalidatePath("/film");
   revalidatePath("/film/[slug]", "page");
   revalidatePath("/io");
+  revalidatePath("/percorsi");
+  revalidatePath("/percorsi/[id]", "page");
   revalidatePath("/");
 }
 

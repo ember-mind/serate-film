@@ -65,7 +65,15 @@ export function NewEventForm({
 
   const wlMovies = movies.filter((m) => m.inWatchlist && (matches(m) || selected.has(m.id)));
   const catalogAll = useMemo(
-    () => movies.filter((m) => !m.inWatchlist && (matches(m) || selected.has(m.id))),
+    () => {
+      const matching = movies.filter(
+        (m) => !m.inWatchlist && (matches(m) || selected.has(m.id))
+      );
+      return [
+        ...matching.filter((movie) => selected.has(movie.id)),
+        ...matching.filter((movie) => !selected.has(movie.id)),
+      ];
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [movies, q, selected]
   );
