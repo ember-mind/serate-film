@@ -36,7 +36,14 @@ import {
 } from "@/db/schema";
 import { createSession, destroySession } from "@/lib/session";
 import { requireUser, requireAdmin } from "@/lib/auth";
-import { canAccessEvent } from "@/lib/access";
+import {
+  authorizeEventAction,
+  authorizeEventInviteToken,
+  canAccessEvent,
+  EventAuthorizationError,
+  isEventActionStateAllowed,
+  requireEventActionUser,
+} from "@/lib/access";
 import { sanitizeNext } from "@/lib/nav";
 import { fetchMovieMetadata } from "@/lib/movie-metadata.mjs";
 
@@ -58,20 +65,13 @@ export async function signupWithInvite(
   formData: FormData
 ) {
   const token = String(formData.get("token") ?? "");
+  const inviteContext = await authorizeEventInviteToken("signupWithInvite", token);
+  if (!inviteContext) return { error: "Invito non valido o serata conclusa." };
+  const { event } = inviteContext;
   const name = String(formData.get("name") ?? "").trim();
   const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
-
-  const invite = await db.query.eventInviteLinks.findFirst({
-    where: eq(eventInviteLinks.token, token),
-  });
-  const event = invite
-    ? await db.query.events.findFirst({ where: eq(events.id, invite.eventId) })
-    : null;
-  if (!invite || !event || event.status === "cancelled") {
-    return { error: "Invito non valido o serata annullata." };
-  }
   if (!name || name.length > 60) return { error: "Inserisci il tuo nome." };
   if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
     return { error: "Username: 3–30 caratteri, solo lettere, numeri, punto, trattino." };
@@ -82,32 +82,53 @@ export async function signupWithInvite(
   const existing = await db.query.users.findFirst({ where: eq(users.username, username) });
   if (existing) return { error: "Username già in uso. Accedi se è il tuo." };
 
+  const passwordHash = await bcrypt.hash(password, 10);
   let newUser: typeof users.$inferSelect;
   try {
-    [newUser] = await db
-      .insert(users)
-      .values({
-        username,
-        name,
-        passwordHash: await bcrypt.hash(password, 10),
-      })
-      .returning();
-  } catch {
-    return { error: "Username già in uso. Provane un altro." };
-  }
-  await db
-    .insert(userProfiles)
-    .values({
-      userId: newUser.id,
-      slug: `${username}-${newUser.id}`,
-    })
-    .onConflictDoNothing();
+    newUser = db.transaction((tx) => {
+      const currentInvite = tx
+        .select({
+          eventId: events.id,
+          access: events.access,
+          status: events.status,
+        })
+        .from(eventInviteLinks)
+        .innerJoin(events, eq(events.id, eventInviteLinks.eventId))
+        .where(eq(eventInviteLinks.token, token))
+        .get();
+      if (
+        !currentInvite ||
+        currentInvite.eventId !== event.id ||
+        !isEventActionStateAllowed("signupWithInvite", currentInvite.status)
+      ) {
+        throw new EventAuthorizationError();
+      }
 
-  if (event.access === "invite_only" || event.access === "circle") {
-    await db
-      .insert(eventInvitees)
-      .values({ eventId: event.id, userId: newUser.id })
-      .onConflictDoNothing();
+      const created = tx
+        .insert(users)
+        .values({ username, name, passwordHash })
+        .returning()
+        .get();
+      tx.insert(userProfiles)
+        .values({
+          userId: created.id,
+          slug: `${username}-${created.id}`,
+        })
+        .onConflictDoNothing()
+        .run();
+      if (currentInvite.access === "invite_only" || currentInvite.access === "circle") {
+        tx.insert(eventInvitees)
+          .values({ eventId: currentInvite.eventId, userId: created.id })
+          .onConflictDoNothing()
+          .run();
+      }
+      return created;
+    });
+  } catch (error) {
+    if (error instanceof EventAuthorizationError) {
+      return { error: "Invito non valido o serata conclusa." };
+    }
+    return { error: "Username già in uso. Provane un altro." };
   }
 
   await createSession(newUser.id);
@@ -285,7 +306,7 @@ export async function saveFriends(formData: FormData) {
 // ---------- serate ----------
 
 export async function createEvent(_prev: { error?: string } | undefined, formData: FormData) {
-  const user = await requireUser();
+  const user = await requireEventActionUser("createEvent");
   const title = String(formData.get("title") ?? "").trim() || null;
   const location = String(formData.get("location") ?? "").trim() || null;
   const startTime = String(formData.get("startTime") ?? "").trim() || null;
@@ -488,7 +509,7 @@ function newInviteToken() {
 }
 
 export async function createEventInviteLink(eventId: number) {
-  await canManage(eventId);
+  await authorizeEventAction("createEventInviteLink", eventId);
   await db
     .insert(eventInviteLinks)
     .values({ eventId, token: newInviteToken() })
@@ -497,7 +518,7 @@ export async function createEventInviteLink(eventId: number) {
 }
 
 export async function regenerateEventInviteLink(eventId: number) {
-  await canManage(eventId);
+  await authorizeEventAction("regenerateEventInviteLink", eventId);
   await db
     .update(eventInviteLinks)
     .set({ token: newInviteToken(), createdAt: new Date().toISOString() })
@@ -506,31 +527,39 @@ export async function regenerateEventInviteLink(eventId: number) {
 }
 
 export async function acceptEventInvite(token: string) {
-  const user = await requireUser();
-  const invite = await db.query.eventInviteLinks.findFirst({
-    where: eq(eventInviteLinks.token, token),
-  });
-  const event = invite
-    ? await db.query.events.findFirst({ where: eq(events.id, invite.eventId) })
-    : null;
-  if (!invite || !event || event.status === "cancelled") redirect("/serate");
+  const { user, event } = await authorizeEventInviteToken("acceptEventInvite", token);
+  if (!user) throw new EventAuthorizationError();
 
-  if (event.access === "invite_only" || event.access === "circle") {
-    await db
-      .insert(eventInvitees)
-      .values({ eventId: event.id, userId: user.id })
-      .onConflictDoNothing();
-  }
+  // Authorization and capability use are one SQLite transaction. A token
+  // rotation or lifecycle transition cannot land between validation and the
+  // membership write (the former TOCTOU admitted users after cancellation).
+  db.transaction((tx) => {
+    const currentInvite = tx
+      .select({ eventId: events.id, access: events.access, status: events.status })
+      .from(eventInviteLinks)
+      .innerJoin(events, eq(events.id, eventInviteLinks.eventId))
+      .where(eq(eventInviteLinks.token, token))
+      .get();
+    if (
+      !currentInvite ||
+      currentInvite.eventId !== event.id ||
+      !isEventActionStateAllowed("acceptEventInvite", currentInvite.status)
+    ) {
+      throw new EventAuthorizationError();
+    }
+    if (currentInvite.access === "invite_only" || currentInvite.access === "circle") {
+      tx.insert(eventInvitees)
+        .values({ eventId: currentInvite.eventId, userId: user.id })
+        .onConflictDoNothing()
+        .run();
+    }
+  });
   revalidatePath(`/serate/${event.id}`);
   redirect(`/serate/${event.id}?invito=accettato`);
 }
 
 export async function saveEventContribution(eventId: number, formData: FormData) {
-  const user = await requireUser();
-  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
-  if (!event || event.status === "done" || event.status === "cancelled") return;
-  if (!(await canAccessEvent(event, user))) return;
-  if (await hasOptedOut(eventId, user.id)) return;
+  const { user } = await authorizeEventAction("saveEventContribution", eventId);
 
   const item = String(formData.get("item") ?? "").trim().slice(0, 160);
   if (!item) {
@@ -555,8 +584,7 @@ export async function saveEventContribution(eventId: number, formData: FormData)
 }
 
 export async function addEventNeed(eventId: number, formData: FormData) {
-  const { event } = await canManage(eventId);
-  if (event.status === "done" || event.status === "cancelled") return;
+  await authorizeEventAction("addEventNeed", eventId);
 
   const item = String(formData.get("item") ?? "").trim().slice(0, 80);
   const quantity = String(formData.get("quantity") ?? "").trim().slice(0, 40) || null;
@@ -574,16 +602,11 @@ export async function addEventNeed(eventId: number, formData: FormData) {
 }
 
 export async function toggleEventNeedClaim(eventId: number, needId: number) {
-  const user = await requireUser();
-  const [event, need] = await Promise.all([
-    db.query.events.findFirst({ where: eq(events.id, eventId) }),
-    db.query.eventNeeds.findFirst({
-      where: and(eq(eventNeeds.id, needId), eq(eventNeeds.eventId, eventId)),
-    }),
-  ]);
-  if (!event || !need || event.status === "done" || event.status === "cancelled") return;
-  if (!(await canAccessEvent(event, user))) return;
-  if (await hasOptedOut(eventId, user.id)) return;
+  const { user } = await authorizeEventAction("toggleEventNeedClaim", eventId);
+  const need = await db.query.eventNeeds.findFirst({
+    where: and(eq(eventNeeds.id, needId), eq(eventNeeds.eventId, eventId)),
+  });
+  if (!need) return;
 
   if (need.claimedBy === user.id) {
     await db
@@ -600,8 +623,7 @@ export async function toggleEventNeedClaim(eventId: number, needId: number) {
 }
 
 export async function deleteEventNeed(eventId: number, needId: number) {
-  const { event } = await canManage(eventId);
-  if (event.status === "done" || event.status === "cancelled") return;
+  await authorizeEventAction("deleteEventNeed", eventId);
   await db
     .delete(eventNeeds)
     .where(and(eq(eventNeeds.id, needId), eq(eventNeeds.eventId, eventId)));
@@ -613,26 +635,40 @@ export async function proposeEventMovie(
   eventId: number,
   _prev: { error?: string; ok?: boolean } | undefined,
   formData: FormData
-) {
-  const user = await requireUser();
-  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
-  if (!event || event.status !== "open") return { error: "Le votazioni sono chiuse." };
-  if (!(await canAccessEvent(event, user))) return { error: "Serata su invito." };
-  if (await hasOptedOut(eventId, user.id)) {
-    return { error: "Hai indicato che non parteciperai." };
+): Promise<{ error?: string; ok?: boolean }> {
+  const { user } = await authorizeEventAction("proposeEventMovie", eventId);
+
+  const rawIds = formData.getAll("movieIds").map((value) => String(value).trim());
+  if (rawIds.length === 0) return { error: "Scegli almeno un film dal catalogo." };
+  if (rawIds.some((value) => !/^[1-9]\d*$/.test(value))) {
+    return { error: "Selezione non valida." };
   }
+  const movieIds = rawIds.map(Number);
+  if (new Set(movieIds).size !== movieIds.length) return { error: "Selezione non valida." };
 
-  const movieId = Number(formData.get("movieId"));
-  const movie = await db.query.movies.findFirst({ where: eq(movies.id, movieId) });
-  if (!movie) return { error: "Scegli un film dal catalogo." };
+  const selectedMovies = await db.query.movies.findMany({ where: inArray(movies.id, movieIds) });
+  if (selectedMovies.length !== movieIds.length) return { error: "Scegli film dal catalogo." };
 
-  const rosa = await db.query.eventMovies.findMany({ where: eq(eventMovies.eventId, eventId) });
-  if (rosa.some((em) => em.movieId === movieId)) return { error: "È già in rosa." };
-  if (rosa.length >= 8) return { error: "La rosa è piena (max 8 film)." };
+  const result = db.transaction((tx) => {
+    const rosa = tx.select().from(eventMovies).where(eq(eventMovies.eventId, eventId)).all();
+    if (movieIds.some((movieId) => rosa.some((candidate) => candidate.movieId === movieId))) {
+      return { error: "Uno o più film sono già in rosa." };
+    }
+    const availableSlots = 8 - rosa.length;
+    if (movieIds.length > availableSlots) {
+      return {
+        error:
+          availableSlots > 0
+            ? `Puoi aggiungere ancora ${availableSlots} film.`
+            : "La rosa è piena (max 8 film).",
+      };
+    }
+    tx.insert(eventMovies).values(movieIds.map((movieId) => ({ eventId, movieId, addedBy: user.id }))).run();
+    return { ok: true };
+  });
 
-  await db.insert(eventMovies).values({ eventId, movieId, addedBy: user.id });
   revalidatePath(`/serate/${eventId}`);
-  return { ok: true };
+  return result;
 }
 
 // Un invitato propone una data in più per una serata aperta.
@@ -641,13 +677,7 @@ export async function proposeEventDate(
   _prev: { error?: string; ok?: boolean } | undefined,
   formData: FormData
 ) {
-  const user = await requireUser();
-  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
-  if (!event || event.status !== "open") return { error: "Le votazioni sono chiuse." };
-  if (!(await canAccessEvent(event, user))) return { error: "Serata su invito." };
-  if (await hasOptedOut(eventId, user.id)) {
-    return { error: "Hai indicato che non parteciperai." };
-  }
+  await authorizeEventAction("proposeEventDate", eventId);
 
   const date = String(formData.get("date") ?? "").trim();
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
@@ -670,17 +700,21 @@ export async function proposeEventDate(
 
 // Scheda unica: sostituisce in blocco i voti dell'utente su date e film della serata.
 export async function submitVotes(eventId: number, formData: FormData) {
-  const user = await requireUser();
-  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
-  if (!event || event.status !== "open") return;
-  if (!(await canAccessEvent(event, user))) return;
-  if (await hasOptedOut(eventId, user.id)) return;
+  const { user } = await authorizeEventAction("submitVotes", eventId);
 
   const pickedDates = new Set(formData.getAll("dateIds").map(Number));
   const pickedMovies = new Set(formData.getAll("movieIds").map(Number));
 
   const dates = await db.query.eventDates.findMany({ where: eq(eventDates.eventId, eventId) });
   const ems = await db.query.eventMovies.findMany({ where: eq(eventMovies.eventId, eventId) });
+  const validDateIds = new Set(dates.map((date) => date.id));
+  const validMovieIds = new Set(ems.map((movie) => movie.id));
+  if (
+    [...pickedDates].some((id) => !validDateIds.has(id)) ||
+    [...pickedMovies].some((id) => !validMovieIds.has(id))
+  ) {
+    return;
+  }
 
   if (dates.length > 0) {
     await db.delete(dateVotes).where(
@@ -717,8 +751,7 @@ export async function submitVotes(eventId: number, formData: FormData) {
 
 // Avvia il ballottaggio: pareggio tra i film più approvati nel primo turno.
 export async function startRunoff(eventId: number) {
-  const { event } = await canManage(eventId);
-  if (event.status !== "open") return { error: "Le votazioni non sono aperte." };
+  await authorizeEventAction("startRunoff", eventId);
 
   const ems = await db.query.eventMovies.findMany({ where: eq(eventMovies.eventId, eventId) });
   if (ems.length === 0) return { error: "Non c'è un pareggio da risolvere." };
@@ -753,11 +786,7 @@ export async function startRunoff(eventId: number) {
 
 // Scheda del ballottaggio: scelta singola tra i soli film in pareggio.
 export async function submitRunoffVote(eventId: number, formData: FormData) {
-  const user = await requireUser();
-  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
-  if (!event || event.status !== "runoff") return;
-  if (!(await canAccessEvent(event, user))) return;
-  if (await hasOptedOut(eventId, user.id)) return;
+  const { user } = await authorizeEventAction("submitRunoffVote", eventId);
 
   const eventMovieId = Number(formData.get("eventMovieId"));
   const ems = await db.query.eventMovies.findMany({ where: eq(eventMovies.eventId, eventId) });
@@ -777,36 +806,9 @@ export async function submitRunoffVote(eventId: number, formData: FormData) {
   revalidatePath(`/serate/${eventId}`);
 }
 
-async function canManage(eventId: number) {
-  const user = await requireUser();
-  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
-  if (!event) throw new Error("Serata non trovata");
-  if (event.createdBy !== user.id && !user.isAdmin) throw new Error("Solo chi ha creato la serata può farlo");
-  return { user, event };
-}
-
-async function hasOptedOut(eventId: number, userId: number) {
-  return Boolean(
-    await db.query.eventRsvps.findFirst({
-      where: and(
-        eq(eventRsvps.eventId, eventId),
-        eq(eventRsvps.userId, userId),
-        eq(eventRsvps.status, "no")
-      ),
-      columns: { eventId: true },
-    })
-  );
-}
-
 export async function addEventInvitees(eventId: number, formData: FormData) {
-  const { user, event } = await canManage(eventId);
-  if (
-    event.status === "done" ||
-    event.status === "cancelled" ||
-    (event.access !== "invite_only" && event.access !== "circle")
-  ) {
-    return;
-  }
+  const { user, event } = await authorizeEventAction("addEventInvitees", eventId);
+  if (event.access !== "invite_only" && event.access !== "circle") return;
 
   const requestedIds = [
     ...new Set(
@@ -882,10 +884,21 @@ export async function addEventInvitees(eventId: number, formData: FormData) {
 }
 
 export async function closeEvent(eventId: number, formData: FormData) {
-  await canManage(eventId);
+  await authorizeEventAction("closeEvent", eventId);
   const chosenDate = String(formData.get("chosenDate") ?? "");
   const chosenMovieId = Number(formData.get("chosenMovieId"));
   if (!chosenDate || !chosenMovieId) return;
+  const [date, candidate] = await Promise.all([
+    db.query.eventDates.findFirst({
+      where: and(eq(eventDates.eventId, eventId), eq(eventDates.date, chosenDate)),
+      columns: { id: true },
+    }),
+    db.query.eventMovies.findFirst({
+      where: and(eq(eventMovies.eventId, eventId), eq(eventMovies.movieId, chosenMovieId)),
+      columns: { id: true },
+    }),
+  ]);
+  if (!date || !candidate) return;
   await db
     .update(events)
     .set({ status: "scheduled", chosenDate, chosenMovieId })
@@ -896,7 +909,7 @@ export async function closeEvent(eventId: number, formData: FormData) {
 }
 
 export async function reopenEvent(eventId: number) {
-  await canManage(eventId);
+  await authorizeEventAction("reopenEvent", eventId);
   const ems = await db.query.eventMovies.findMany({ where: eq(eventMovies.eventId, eventId) });
   if (ems.length > 0) {
     await db.delete(runoffVotes).where(
@@ -916,15 +929,42 @@ export async function reopenEvent(eventId: number) {
 }
 
 export async function cancelEvent(eventId: number) {
-  await canManage(eventId);
+  await authorizeEventAction("cancelEvent", eventId);
   await db.update(events).set({ status: "cancelled" }).where(eq(events.id, eventId));
   revalidatePath("/serate");
   redirect("/serate");
 }
 
 export async function markWatched(eventId: number, formData: FormData) {
-  const { user, event } = await canManage(eventId);
-  const attendeeIds = formData.getAll("attendees").map(Number).filter(Boolean);
+  const { user, event } = await authorizeEventAction("markWatched", eventId);
+  const requestedAttendeeIds = [
+    ...new Set(
+      formData
+        .getAll("attendees")
+        .map(Number)
+        .filter((id) => Number.isInteger(id) && id > 0)
+    ),
+  ];
+  const attendeeUsers = requestedAttendeeIds.length
+    ? await db.query.users.findMany({ where: inArray(users.id, requestedAttendeeIds) })
+    : [];
+  const attendeeIds: number[] = [];
+  for (const attendeeUser of attendeeUsers) {
+    if (
+      (await canAccessEvent(event, attendeeUser)) &&
+      !(await db.query.eventRsvps.findFirst({
+        where: and(
+          eq(eventRsvps.eventId, eventId),
+          eq(eventRsvps.userId, attendeeUser.id),
+          eq(eventRsvps.status, "no")
+        ),
+        columns: { eventId: true },
+      }))
+    ) {
+      attendeeIds.push(attendeeUser.id);
+    }
+  }
+  if (attendeeIds.length !== requestedAttendeeIds.length) return;
   await db.delete(attendance).where(eq(attendance.eventId, eventId));
   if (attendeeIds.length > 0) {
     await db
@@ -954,13 +994,7 @@ export async function markWatched(eventId: number, formData: FormData) {
 }
 
 export async function rateEvent(eventId: number, formData: FormData) {
-  const user = await requireUser();
-  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
-  if (!event || event.status !== "done" || !(await canAccessEvent(event, user))) return;
-  const attended = await db.query.attendance.findFirst({
-    where: and(eq(attendance.eventId, eventId), eq(attendance.userId, user.id)),
-  });
-  if (!attended) return;
+  const { user } = await authorizeEventAction("rateEvent", eventId);
   const stars = Number(formData.get("stars"));
   const comment = String(formData.get("comment") ?? "").trim() || null;
   if (stars < 1 || stars > 5) return;
@@ -990,20 +1024,15 @@ export async function rateEvent(eventId: number, formData: FormData) {
 }
 
 export async function toggleReviewLike(eventId: number, reviewUserId: number) {
-  const user = await requireUser();
+  const { user } = await authorizeEventAction("toggleReviewLike", eventId);
   if (!Number.isInteger(eventId) || !Number.isInteger(reviewUserId) || reviewUserId === user.id) {
     return;
   }
 
-  const [event, review] = await Promise.all([
-    db.query.events.findFirst({ where: eq(events.id, eventId) }),
-    db.query.ratings.findFirst({
-      where: and(eq(ratings.eventId, eventId), eq(ratings.userId, reviewUserId)),
-    }),
-  ]);
-  if (!event || event.status !== "done" || !review?.comment) return;
-
-  if (!(await canAccessEvent(event, user))) return;
+  const review = await db.query.ratings.findFirst({
+    where: and(eq(ratings.eventId, eventId), eq(ratings.userId, reviewUserId)),
+  });
+  if (!review?.comment) return;
 
   const existing = await db.query.reviewLikes.findFirst({
     where: and(
@@ -1074,7 +1103,7 @@ export async function openNotifications() {
 }
 
 export async function saveEventNotes(eventId: number, formData: FormData) {
-  await canManage(eventId);
+  await authorizeEventAction("saveEventNotes", eventId);
   const notes = String(formData.get("notes") ?? "").trim() || null;
   await db.update(events).set({ notes }).where(eq(events.id, eventId));
   revalidatePath(`/serate/${eventId}`);

@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { eventInviteLinks, events, movies, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
 import { acceptEventInvite } from "@/lib/actions";
-import { canAccessEvent } from "@/lib/access";
+import { canAccessEvent, isEventActionStateAllowed } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export default async function InvitePage({
     ? await db.query.events.findFirst({ where: eq(events.id, invite.eventId) })
     : null;
 
-  if (!invite || !event || event.status === "cancelled") {
+  if (!invite || !event || !isEventActionStateAllowed("acceptEventInvite", event.status)) {
     return (
       <main className="curtain flex min-h-dvh items-center justify-center px-4 py-10">
         <div className="cinemascope w-full max-w-md px-6 py-10 text-center">

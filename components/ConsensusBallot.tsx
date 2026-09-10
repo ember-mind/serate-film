@@ -169,7 +169,7 @@ export function ConsensusBallot({
               disabled={pending || disabled}
               className="rounded-lg bg-proiettore px-4 py-2 text-sm font-semibold text-notte-fonda disabled:opacity-50"
             >
-              {pending ? "Consegno…" : initialRanks.length ? "Aggiorna podio" : "Consegna podio"}
+              {pending ? "Voto…" : initialRanks.length ? "Aggiorna voto" : "Vota"}
             </button>
           </div>
           {state?.error && <p className="text-sm text-velluto">{state.error}</p>}

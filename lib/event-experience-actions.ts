@@ -20,17 +20,16 @@ import {
   ratings,
   runoffVotes,
 } from "@/db/schema";
+import { authorizeEventAction, isEventActionStateAllowed } from "@/lib/access";
 import { requireUser } from "@/lib/auth";
-import { canAccessEvent } from "@/lib/access";
 
 type ActionState = { error?: string; ok?: boolean };
 
-async function eventForMember(eventId: number) {
-  const user = await requireUser();
-  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
-  if (!event) return null;
-
-  return (await canAccessEvent(event, user)) ? { user, event } : null;
+function parseCandidateId(value: FormDataEntryValue) {
+  const raw = String(value);
+  if (!/^[1-9]\d*$/.test(raw)) return null;
+  const id = Number(raw);
+  return Number.isSafeInteger(id) ? id : null;
 }
 
 export async function setEventParticipation(
@@ -38,11 +37,7 @@ export async function setEventParticipation(
   _prev: ActionState | undefined,
   formData: FormData
 ): Promise<ActionState> {
-  const context = await eventForMember(eventId);
-  if (!context) return { error: "Questa serata è riservata." };
-  if (context.event.status === "done" || context.event.status === "cancelled") {
-    return { error: "Le presenze sono chiuse." };
-  }
+  const context = await authorizeEventAction("setEventParticipation", eventId);
 
   const participating = formData.get("participating") === "yes";
   if (participating) {
@@ -153,74 +148,127 @@ export async function submitConsensusBallot(
   _prev: ActionState | undefined,
   formData: FormData
 ): Promise<ActionState> {
-  const context = await eventForMember(eventId);
-  if (!context) return { error: "Questa serata è riservata." };
-  if (context.event.status !== "open") return { error: "La scelta del film è chiusa." };
-  const optedOut = await db.query.eventRsvps.findFirst({
-    where: and(
-      eq(eventRsvps.eventId, eventId),
-      eq(eventRsvps.userId, context.user.id),
-      eq(eventRsvps.status, "no")
-    ),
+  const context = await authorizeEventAction("submitConsensusBallot", eventId);
+
+  const result = db.transaction((tx): ActionState => {
+    const currentEvent = tx
+      .select({ status: events.status })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .get();
+    if (
+      !currentEvent ||
+      !isEventActionStateAllowed("submitConsensusBallot", currentEvent.status)
+    ) {
+      return { error: "La scelta del film è chiusa." };
+    }
+    const optedOut = tx
+      .select({ eventId: eventRsvps.eventId })
+      .from(eventRsvps)
+      .where(
+        and(
+          eq(eventRsvps.eventId, eventId),
+          eq(eventRsvps.userId, context.user.id),
+          eq(eventRsvps.status, "no")
+        )
+      )
+      .get();
+    if (optedOut) return { error: "Hai indicato che non parteciperai." };
+
+    const candidates = tx
+      .select()
+      .from(eventMovies)
+      .where(eq(eventMovies.eventId, eventId))
+      .all();
+    const validIds = new Set(candidates.map((candidate) => candidate.id));
+    const rankEntries = ["rank1", "rank2", "rank3"].map((name) =>
+      formData.getAll(name)
+    );
+    if (rankEntries.some((entries) => entries.length > 1)) {
+      return { error: "Scheda non valida." };
+    }
+    const rankedSlots: Array<number | null> = [];
+    for (const entries of rankEntries) {
+      if (entries.length === 0 || String(entries[0]).trim() === "") {
+        rankedSlots.push(null);
+        continue;
+      }
+      const id = parseCandidateId(entries[0]);
+      if (id === null || !validIds.has(id)) {
+        return { error: "Scheda non valida." };
+      }
+      rankedSlots.push(id);
+    }
+    if (rankedSlots[0] === null) {
+      return { error: "Indica almeno la tua prima scelta." };
+    }
+    const firstGap = rankedSlots.indexOf(null);
+    if (firstGap !== -1 && rankedSlots.slice(firstGap + 1).some((id) => id !== null)) {
+      return { error: "Le posizioni devono essere consecutive." };
+    }
+    const rankedIds = rankedSlots.filter((id): id is number => id !== null);
+    if (new Set(rankedIds).size !== rankedIds.length) {
+      return { error: "Ogni posizione del podio deve avere un film diverso." };
+    }
+
+    const vetoIds: number[] = [];
+    for (const entry of formData.getAll("vetoIds")) {
+      const id = parseCandidateId(entry);
+      if (id === null || !validIds.has(id)) {
+        return { error: "Scheda non valida." };
+      }
+      vetoIds.push(id);
+    }
+    if (new Set(vetoIds).size !== vetoIds.length) {
+      return { error: "Ogni esclusione deve indicare un film diverso." };
+    }
+    if (vetoIds.some((id) => rankedIds.includes(id))) {
+      return { error: "Un film sul podio non può essere anche escluso." };
+    }
+
+    const previous = tx
+      .select()
+      .from(movieBallots)
+      .where(
+        and(
+          eq(movieBallots.eventId, eventId),
+          eq(movieBallots.userId, context.user.id)
+        )
+      )
+      .get();
+    if (previous) {
+      tx.delete(movieBallotItems)
+        .where(eq(movieBallotItems.ballotId, previous.id))
+        .run();
+      tx.delete(movieBallots).where(eq(movieBallots.id, previous.id)).run();
+    }
+
+    const ballot = tx
+      .insert(movieBallots)
+      .values({ eventId, userId: context.user.id, submittedAt: new Date().toISOString() })
+      .returning()
+      .get();
+    tx.insert(movieBallotItems)
+      .values([
+        ...rankedIds.map((eventMovieId, index) => ({
+          ballotId: ballot.id,
+          eventMovieId,
+          rank: index + 1,
+          veto: false,
+        })),
+        ...vetoIds.map((eventMovieId) => ({
+          ballotId: ballot.id,
+          eventMovieId,
+          rank: null,
+          veto: true,
+        })),
+      ])
+      .run();
+    return { ok: true };
   });
-  if (optedOut) return { error: "Hai indicato che non parteciperai." };
 
-  const candidates = await db.query.eventMovies.findMany({
-    where: eq(eventMovies.eventId, eventId),
-  });
-  const validIds = new Set(candidates.map((candidate) => candidate.id));
-  const rankedIds = ["rank1", "rank2", "rank3"]
-    .map((name) => Number(formData.get(name)))
-    .filter((id) => Number.isInteger(id) && validIds.has(id));
-  if (rankedIds.length === 0) return { error: "Indica almeno la tua prima scelta." };
-  if (new Set(rankedIds).size !== rankedIds.length) {
-    return { error: "Ogni posizione del podio deve avere un film diverso." };
-  }
-
-  const vetoIds = [
-    ...new Set(
-      formData
-        .getAll("vetoIds")
-        .map(Number)
-        .filter((id) => Number.isInteger(id) && validIds.has(id))
-    ),
-  ];
-  if (vetoIds.some((id) => rankedIds.includes(id))) {
-    return { error: "Un film sul podio non può essere anche escluso." };
-  }
-
-  const previous = await db.query.movieBallots.findFirst({
-    where: and(
-      eq(movieBallots.eventId, eventId),
-      eq(movieBallots.userId, context.user.id)
-    ),
-  });
-  if (previous) {
-    await db.delete(movieBallotItems).where(eq(movieBallotItems.ballotId, previous.id));
-    await db.delete(movieBallots).where(eq(movieBallots.id, previous.id));
-  }
-
-  const [ballot] = await db
-    .insert(movieBallots)
-    .values({ eventId, userId: context.user.id, submittedAt: new Date().toISOString() })
-    .returning();
-  await db.insert(movieBallotItems).values([
-    ...rankedIds.map((eventMovieId, index) => ({
-      ballotId: ballot.id,
-      eventMovieId,
-      rank: index + 1,
-      veto: false,
-    })),
-    ...vetoIds.map((eventMovieId) => ({
-      ballotId: ballot.id,
-      eventMovieId,
-      rank: null,
-      veto: true,
-    })),
-  ]);
-
-  revalidatePath(`/serate/${eventId}`);
-  return { ok: true };
+  if (result.ok) revalidatePath(`/serate/${eventId}`);
+  return result;
 }
 
 export async function addRatingComment(
@@ -229,17 +277,7 @@ export async function addRatingComment(
   _prev: ActionState | undefined,
   formData: FormData
 ): Promise<ActionState> {
-  const context = await eventForMember(eventId);
-  if (!context || context.event.status !== "done") {
-    return { error: "Conversazione non disponibile." };
-  }
-  const attended = await db.query.attendance.findFirst({
-    where: and(
-      eq(attendance.eventId, eventId),
-      eq(attendance.userId, context.user.id)
-    ),
-  });
-  if (!attended) return { error: "Può commentare chi ha partecipato alla serata." };
+  const context = await authorizeEventAction("addRatingComment", eventId);
 
   const review = await db.query.ratings.findFirst({
     where: and(eq(ratings.eventId, eventId), eq(ratings.userId, ratingUserId)),
@@ -287,11 +325,14 @@ export async function addRatingComment(
 }
 
 export async function deleteRatingComment(commentId: number) {
-  const user = await requireUser();
+  await requireUser();
   const comment = await db.query.ratingComments.findFirst({
     where: eq(ratingComments.id, commentId),
   });
-  if (!comment || (comment.authorUserId !== user.id && !user.isAdmin)) return;
+  if (!comment) return;
+  await authorizeEventAction("deleteRatingComment", comment.eventId, {
+    resourceOwnerId: comment.authorUserId,
+  });
   await db.delete(ratingComments).where(eq(ratingComments.id, commentId));
   revalidatePath(`/serate/${comment.eventId}`);
 }
