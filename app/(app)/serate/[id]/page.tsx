@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attendance,
@@ -25,6 +25,7 @@ import {
   reviewLikes,
   screeningLicenses,
   users,
+  watchlist,
 } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import {
@@ -150,6 +151,20 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
           ),
         })
       : [];
+  const activeWatchlist = await db.query.watchlist.findMany({
+    where: eq(watchlist.status, "active"),
+    orderBy: desc(watchlist.addedAt),
+  });
+  const watchlistMovieIds = activeWatchlist.map((item) => item.movieId);
+  const watchlistCatalog =
+    watchlistMovieIds.length > 0
+      ? await db.query.movies.findMany({ where: inArray(movies.id, watchlistMovieIds) })
+      : [];
+  const watchlistMovies = watchlistMovieIds.flatMap((movieId) => {
+    if (eMovies.some((candidate) => candidate.movieId === movieId)) return [];
+    const movie = watchlistCatalog.find((item) => item.id === movieId);
+    return movie ? [{ id: movie.id, title: movie.title, year: movie.year }] : [];
+  });
   const ballots = await db.query.movieBallots.findMany({
     where: eq(movieBallots.eventId, eventId),
   });
@@ -715,6 +730,8 @@ export default async function SerataPage({ params }: { params: Promise<{ id: str
               <ProposeMovie
                 eventId={eventId}
                 movies={proposable.map((m) => ({ id: m.id, title: m.title, year: m.year }))}
+                watchlistMovies={watchlistMovies}
+                maxSelections={Math.max(0, 8 - eMovies.length)}
               />
             </div>
           )}

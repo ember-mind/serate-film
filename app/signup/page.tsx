@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { eventInviteLinks, events, movies } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
+import { isEventActionStateAllowed } from "@/lib/access";
 import { SignupForm } from "./SignupForm";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export default async function SignupPage({
     ? await db.query.movies.findFirst({ where: eq(movies.id, event.chosenMovieId) })
     : null;
 
-  if (!invite || !event || event.status === "cancelled") {
+  if (!invite || !event || !isEventActionStateAllowed("signupWithInvite", event.status)) {
     return (
       <main className="curtain flex min-h-dvh items-center justify-center px-4 py-10">
         <div className="cinemascope w-full max-w-md px-6 py-10 text-center">

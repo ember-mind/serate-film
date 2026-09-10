@@ -13,8 +13,7 @@ import {
   roomPolls,
   screeningLicenses,
 } from "@/db/schema";
-import { requireAdmin, requireUser } from "@/lib/auth";
-import { canAccessEvent } from "@/lib/access";
+import { authorizeEventAction } from "@/lib/access";
 
 export type RoomActionResult = { ok?: boolean; error?: string };
 
@@ -56,37 +55,12 @@ function youtubeId(value: unknown) {
   }
 }
 
-async function authorizeEvent(eventId: number, manage = false) {
-  const user = await requireUser();
-  if (!Number.isInteger(eventId) || eventId < 1) throw new Error("Serata non valida");
-
-  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
-  if (!event) throw new Error("Serata non trovata");
-
-  const isManager = user.isAdmin || event.createdBy === user.id;
-  let allowed = await canAccessEvent(event, user);
-  if (allowed && !isManager && !manage && event.viewingMode === "licensed_public") {
-    const license = await db.query.screeningLicenses.findFirst({
-      where: eq(screeningLicenses.eventId, eventId),
-    });
-    allowed =
-      license?.status === "verified" &&
-      (!license.expiresAt || license.expiresAt >= new Date().toISOString().slice(0, 10));
-  }
-
-  if (!allowed || (manage && !isManager)) throw new Error("Non autorizzato");
-  return { user, event, isManager };
-}
-
 export async function configureRoom(
   eventId: number,
   _previous: RoomActionResult | undefined,
   formData: FormData
 ): Promise<RoomActionResult> {
-  const { user, event } = await authorizeEvent(eventId, true);
-  if (event.status === "done" || event.status === "cancelled") {
-    return { error: "Serata conclusa: sala non modificabile." };
-  }
+  const { user } = await authorizeEventAction("configureRoom", eventId);
 
   const mode = clean(formData.get("mode"), 30);
   if (!["youtube", "watch_along", "licensed_public"].includes(mode)) {
@@ -174,7 +148,7 @@ export async function configureRoom(
 }
 
 export async function joinRoom(eventId: number): Promise<RoomActionResult> {
-  const { user } = await authorizeEvent(eventId);
+  const { user } = await authorizeEventAction("joinRoom", eventId);
   const now = new Date().toISOString();
   await db
     .insert(roomParticipants)
@@ -190,7 +164,7 @@ export async function joinRoom(eventId: number): Promise<RoomActionResult> {
 }
 
 export async function heartbeatRoom(eventId: number): Promise<void> {
-  const { user } = await authorizeEvent(eventId);
+  const { user } = await authorizeEventAction("heartbeatRoom", eventId);
   await db
     .update(roomParticipants)
     .set({ lastSeenAt: new Date().toISOString() })
@@ -206,7 +180,7 @@ export async function setRoomReady(
   eventId: number,
   ready: boolean
 ): Promise<RoomActionResult> {
-  const { user } = await authorizeEvent(eventId);
+  const { user } = await authorizeEventAction("setRoomReady", eventId);
   const now = new Date().toISOString();
   await db
     .insert(roomParticipants)
@@ -227,7 +201,7 @@ export async function controlRoom(
     revision: number;
   }
 ): Promise<RoomActionResult> {
-  const { user } = await authorizeEvent(eventId, true);
+  const { user } = await authorizeEventAction("controlRoom", eventId);
   const room = await db.query.eventRooms.findFirst({
     where: eq(eventRooms.eventId, eventId),
   });
@@ -279,7 +253,7 @@ export async function postRoomMessage(
   bodyInput: string,
   timecodeSeconds: number
 ): Promise<RoomActionResult> {
-  const { user } = await authorizeEvent(eventId);
+  const { user } = await authorizeEventAction("postRoomMessage", eventId);
   const body = clean(bodyInput, 500);
   const timecode = Math.max(0, Math.min(86_400, Math.round(Number(timecodeSeconds) || 0)));
   if (!body) return { error: "Scrivi messaggio." };
@@ -309,7 +283,7 @@ export async function postRoomReaction(
   reaction: string,
   timecodeSeconds: number
 ): Promise<RoomActionResult> {
-  const { user } = await authorizeEvent(eventId);
+  const { user } = await authorizeEventAction("postRoomReaction", eventId);
   if (!REACTIONS.has(reaction)) return { error: "Reazione non valida." };
   const timecode = Math.max(0, Math.min(86_400, Math.round(Number(timecodeSeconds) || 0)));
 
@@ -339,7 +313,7 @@ export async function createRoomPoll(
   questionInput: string,
   optionsInput: string
 ): Promise<RoomActionResult> {
-  const { user } = await authorizeEvent(eventId, true);
+  const { user } = await authorizeEventAction("createRoomPoll", eventId);
   const question = clean(questionInput, 160);
   const options = [
     ...new Set(
@@ -370,7 +344,7 @@ export async function voteRoomPoll(
   pollId: number,
   optionId: number
 ): Promise<RoomActionResult> {
-  const { user } = await authorizeEvent(eventId);
+  const { user } = await authorizeEventAction("voteRoomPoll", eventId);
   const [poll, option] = await Promise.all([
     db.query.roomPolls.findFirst({
       where: and(eq(roomPolls.id, pollId), eq(roomPolls.eventId, eventId)),
@@ -396,7 +370,7 @@ export async function closeRoomPoll(
   eventId: number,
   pollId: number
 ): Promise<RoomActionResult> {
-  await authorizeEvent(eventId, true);
+  await authorizeEventAction("closeRoomPoll", eventId);
   await db
     .update(roomPolls)
     .set({ status: "closed" })
@@ -410,7 +384,7 @@ export async function submitScreeningLicense(
   _previous: RoomActionResult | undefined,
   formData: FormData
 ): Promise<RoomActionResult> {
-  await authorizeEvent(eventId, true);
+  await authorizeEventAction("submitScreeningLicense", eventId);
   const territory = clean(formData.get("territory"), 2).toUpperCase();
   const capacity = Number(formData.get("capacity"));
   const reference = clean(formData.get("reference"), 120);
@@ -463,7 +437,7 @@ export async function reviewScreeningLicense(
   eventId: number,
   decision: "verified" | "rejected"
 ): Promise<RoomActionResult> {
-  const admin = await requireAdmin();
+  const { user: admin } = await authorizeEventAction("reviewScreeningLicense", eventId);
   const license = await db.query.screeningLicenses.findFirst({
     where: eq(screeningLicenses.eventId, eventId),
   });

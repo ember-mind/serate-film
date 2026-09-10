@@ -3,9 +3,8 @@
 import { and, eq, gt, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { eventDiscussionMessages, events } from "@/db/schema";
-import { canAccessEvent } from "@/lib/access";
-import { requireUser } from "@/lib/auth";
+import { eventDiscussionMessages } from "@/db/schema";
+import { authorizeEventAction } from "@/lib/access";
 
 type DiscussionState = { ok?: boolean; error?: string };
 
@@ -14,14 +13,7 @@ export async function postEventDiscussionMessage(
   _previous: DiscussionState | undefined,
   formData: FormData
 ): Promise<DiscussionState> {
-  const user = await requireUser();
-  const event = await db.query.events.findFirst({ where: eq(events.id, eventId) });
-  if (!event || !(await canAccessEvent(event, user))) {
-    return { error: "Chat non disponibile." };
-  }
-  if (event.status !== "open" && event.status !== "runoff") {
-    return { error: "Decisione già chiusa." };
-  }
+  const { user } = await authorizeEventAction("postEventDiscussionMessage", eventId);
 
   const body = String(formData.get("body") ?? "").trim();
   if (!body) return { error: "Scrivi un commento." };
