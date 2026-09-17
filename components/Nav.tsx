@@ -3,130 +3,63 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NotificationBell } from "@/components/NotificationBell";
+import { eveningsNavigation, libraryNavigation, matchesNavigation, primaryNavigation } from "@/lib/navigation";
+import styles from "./Editorial.module.css";
 
-type NavItem = {
-  href: string;
-  label: string;
-  paths: string[];
-};
+function NavigationIcon({ href }: { href: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      {href === "/" ? <path d="m3 10 9-7 9 7v10H3z M9 20v-7h6v7" />
+        : href === "/film" ? <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4" /></>
+          : href === "/serate" ? <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M7 3v4M17 3v4M3 11h18" /></>
+            : <><circle cx="12" cy="8" r="4" /><path d="M4 21v-2a8 8 0 0 1 16 0v2" /></>}
+    </svg>
+  );
+}
 
-const desktopItems: NavItem[] = [
-  { href: "/", label: "Stasera", paths: ["/", "/attivita", "/trova-film"] },
-  {
-    href: "/film",
-    label: "Cineteca",
-    paths: ["/film", "/watchlist", "/attori", "/registi", "/percorsi"],
-  },
-  { href: "/serate", label: "Proiezioni", paths: ["/serate", "/storico"] },
-  { href: "/circoli", label: "Circoli", paths: ["/circoli", "/club", "/persone"] },
-  { href: "/io", label: "Io", paths: ["/io", "/admin"] },
-];
-
-const mobileItems: NavItem[] = [
-  { href: "/", label: "Stasera", paths: ["/"] },
-  {
-    href: "/film",
-    label: "Cineteca",
-    paths: ["/film", "/watchlist", "/attori", "/registi", "/percorsi"],
-  },
-  { href: "/serate", label: "Serate", paths: ["/serate", "/storico"] },
-  { href: "/io", label: "Io", paths: ["/io", "/admin"] },
-];
-
-const libraryItems = [
-  { href: "/film", label: "Film" },
-  { href: "/watchlist", label: "Watchlist" },
-  { href: "/attori", label: "Attori" },
-  { href: "/registi", label: "Registi" },
-  { href: "/percorsi", label: "Percorsi" },
-];
-
-export function Nav({
-  userName,
-  unreadNotifications,
-}: {
+export function Nav({ userName, unreadNotifications }: {
   isAdmin: boolean;
   userName: string;
   unreadNotifications: number;
 }) {
   const pathname = usePathname();
-  const desktopLinks = desktopItems;
-
-  const isActive = (item: NavItem) =>
-    item.paths.some((path) => (path === "/" ? pathname === "/" : pathname.startsWith(path)));
-  const isLibraryItemActive = (href: string) => pathname.startsWith(href);
-  const isInLibrary = libraryItems.some((item) => isLibraryItemActive(item.href));
+  const inLibrary = matchesNavigation(pathname, primaryNavigation[1]);
+  const inEvenings = matchesNavigation(pathname, primaryNavigation[2]);
+  const sectionLinks = inLibrary ? libraryNavigation : inEvenings ? eveningsNavigation : [];
 
   return (
     <>
-      {/* insegna */}
-      <header className="sticky top-0 z-20 border-b border-riga bg-notte/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5">
-          <Link href="/" className="titlecard text-lg text-schermo">
-            Serate<span className="text-proiettore"> Film</span>
-          </Link>
-          <nav className="hidden gap-6 sm:flex" aria-label="Principale">
-            {desktopLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={isActive(item) ? "page" : undefined}
-                className={`border-b-2 pb-0.5 font-mono text-xs uppercase tracking-[0.22em] transition-colors ${
-                  isActive(item)
-                    ? "border-proiettore text-proiettore"
-                    : "border-transparent text-fumo hover:text-schermo"
-                }`}
-              >
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <Link href="/" className={styles.brand}>Serate <span>Film</span></Link>
+          <nav className={styles.desktopNav} aria-label="Principale">
+            {primaryNavigation.map((item) => (
+              <Link key={item.href} href={item.href} aria-current={matchesNavigation(pathname, item) ? "page" : undefined} className={styles.navLink}>
                 {item.label}
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-3">
+          <div className={styles.utility}>
             <NotificationBell initialCount={unreadNotifications} />
-            <span className="eyebrow hidden sm:block">{userName}</span>
+            <Link href="/io" className={styles.profile} aria-label={`Il tuo spazio · ${userName}`} title={userName}>
+              {userName.trim().slice(0, 1).toLocaleUpperCase("it") || "Io"}
+            </Link>
           </div>
         </div>
-        {isInLibrary && (
-          <nav
-            aria-label="Sezioni della cineteca"
-            className="mx-auto flex max-w-5xl justify-center gap-5 border-t border-riga/60 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.18em] sm:gap-8"
-          >
-            {libraryItems.map((item) => {
-              const active = isLibraryItemActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={
-                    active
-                      ? "text-proiettore"
-                      : "text-fumo transition-colors hover:text-schermo"
-                  }
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
+        {sectionLinks.length > 0 && (
+          <nav aria-label={inLibrary ? "Sezioni della cineteca" : "Sezioni delle serate"} className={styles.contextNav}>
+            {sectionLinks.map((item) => (
+              <Link key={item.href} href={item.href} aria-current={matchesNavigation(pathname, item) ? "page" : undefined}>
+                {item.label}
+              </Link>
+            ))}
           </nav>
         )}
       </header>
-
-      {/* barra inferiore mobile */}
-      <nav
-        aria-label="Principale"
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-riga bg-notte-fonda/95 backdrop-blur sm:hidden"
-      >
-        {mobileItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={isActive(item) ? "page" : undefined}
-            className={`min-w-0 py-3 text-center font-mono text-[10px] uppercase tracking-[0.14em] ${
-              isActive(item) ? "text-proiettore" : "text-fumo"
-            }`}
-          >
-            {item.label}
+      <nav className={styles.bottomNav} aria-label="Principale">
+        {primaryNavigation.map((item) => (
+          <Link key={item.href} href={item.href} aria-current={matchesNavigation(pathname, item) ? "page" : undefined} className={styles.navLink}>
+            <NavigationIcon href={item.href} />{item.label}
           </Link>
         ))}
       </nav>
