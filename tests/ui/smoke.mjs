@@ -78,7 +78,16 @@ async function login(page, username) {
 }
 async function screenshot(page, name) {
   await page.evaluate(() => document.fonts.ready);
-  await page.evaluate(async () => { await Promise.all([...document.querySelectorAll("main img")].map((image) => image.decode().catch(() => {}))); });
+  // Full-page capture includes offscreen lazy images; explicitly load them for
+  // the capture instead of waiting forever for a viewport-only lazy request.
+  await page.evaluate(async () => {
+    const images = [...document.querySelectorAll("main img")];
+    for (const image of images) image.loading = "eager";
+    await Promise.race([
+      Promise.all(images.map((image) => image.decode().catch(() => {}))),
+      new Promise((resolve) => setTimeout(resolve, 10000)),
+    ]);
+  });
   await page.screenshot({ path: path.join(output, name + ".png"), fullPage: true, animations: "disabled" });
 }
 const primary = (page) => page.locator('nav[aria-label="Principale"]:visible');
