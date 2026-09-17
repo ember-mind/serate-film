@@ -1,0 +1,75 @@
+/* Shared shell, deliberately scoped: legacy film/event forms keep their styles. */
+.shell {
+  --ui-bg: #0b0a08;
+  --ui-surface: #171512;
+  --ui-raised: #221f1a;
+  --ui-line: #363129;
+  --ui-text: #eee9df;
+  --ui-muted: #b4ada1;
+  --ui-accent: #d4a24e;
+  --ui-positive: #b6caaa;
+  --ui-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ui-bg);
+}
+.main {
+  width: 100%;
+  min-width: 0;
+  max-width: 1160px;
+  margin-inline: auto;
+  flex: 1;
+  padding: 40px 28px 64px;
+}
+.main:focus { outline: none; }
+.header, .bottomNav, .footer {
+  font-family: var(--ui-font);
+  color: var(--ui-text);
+}
+.header { border-bottom: 1px solid var(--ui-line); background: var(--ui-bg); }
+.headerInner {
+  max-width: 1160px;
+  min-height: 80px;
+  padding-inline: 28px;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: 44px;
+}
+.brand { font: 24px Georgia, serif; letter-spacing: -.5px; white-space: nowrap; }
+.brand span { color: var(--ui-accent); }
+.desktopNav { display: flex; align-self: stretch; gap: 28px; flex: 1; }
+.navLink { display: flex; align-items: center; color: var(--ui-muted); font-size: 14px; border-bottom: 2px solid transparent; min-height: 48px; }
+.navLink[aria-current] { border-color: var(--ui-accent); color: var(--ui-text); }
+.utility { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.profile { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--ui-line); background: var(--ui-raised); font-size: 12px; color: var(--ui-muted); }
+.utility button { width: 42px; height: 42px; box-shadow: none; }
+.contextNav { display: flex; flex-wrap: wrap; gap: 4px 24px; max-width: 1160px; margin-inline: auto; padding: 4px 28px; border-top: 1px solid var(--ui-line); }
+.contextNav a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; color: var(--ui-muted); border-bottom: 2px solid transparent; }
+.contextNav a[aria-current] { color: var(--ui-accent); border-color: var(--ui-accent); }
+.bottomNav { display: none; }
+.footer { width: calc(100% - 56px); max-width: 1104px; margin-inline: auto; padding: 24px 0; border-top: 1px solid var(--ui-line); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; color: var(--ui-muted); }
+.footer button { min-height: 44px; cursor: pointer; overflow-wrap: anywhere; text-align: left; }
+.header a:hover, .contextNav a:hover, .footer button:hover { color: var(--ui-accent); }
+.shell :is(.header, .bottomNav, .footer) :is(a, button):focus-visible, .skip:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 4px; }
+.skip { position: fixed; top: -100px; left: 12px; z-index: 100; padding: 12px; background: var(--ui-text); color: var(--ui-bg); font-family: var(--ui-font); }
+.skip:focus { top: 8px; }
+@media (max-width: 800px) {
+  .headerInner { gap: 24px; }
+  .desktopNav { gap: 20px; }
+}
+@media (max-width: 600px) {
+  .main { padding: 28px 18px 32px; }
+  .headerInner { min-height: 62px; padding-inline: 18px; gap: 12px; }
+  .brand { font-size: 22px; }
+  .desktopNav, .profile { display: none; }
+  .utility button { width: 44px; height: 44px; }
+  .contextNav { padding-inline: 18px; gap: 0 20px; }
+  .contextNav a { font-size: 13px; }
+  .footer { width: calc(100% - 36px); padding-bottom: calc(86px + env(safe-area-inset-bottom)); align-items: flex-start; flex-direction: column; gap: 4px; }
+  .bottomNav { position: fixed; bottom: 0; inset-inline: 0; z-index: 30; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--ui-bg); border-top: 1px solid var(--ui-line); padding-bottom: env(safe-area-inset-bottom); }
+  .bottomNav .navLink { min-height: 62px; border-bottom: 0; border-top: 2px solid transparent; display: flex; flex-direction: column; justify-content: center; gap: 3px; font-size: 11px; }
+  .bottomNav .navLink[aria-current] { border-top-color: var(--ui-accent); color: var(--ui-accent); }
+  .bottomNav svg { width: 20px; height: 20px; }
+}

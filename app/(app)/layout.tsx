@@ -4,6 +4,7 @@ import { journeyMembers, notifications } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { logout } from "@/lib/actions";
 import { Nav } from "@/components/Nav";
+import styles from "@/components/Editorial.module.css";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -22,18 +23,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ]);
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className={styles.shell}>
+      <a href="#main-content" className={styles.skip}>Vai al contenuto</a>
       <Nav
         isAdmin={user.isAdmin}
         userName={user.name}
         unreadNotifications={unreadNotifications.length + pendingJourneyInvites.length}
       />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-6 sm:pb-12">
+      <main id="main-content" tabIndex={-1} className={styles.main}>
         {children}
       </main>
-      <footer className="hidden border-t border-riga py-4 text-center sm:block">
+      <footer className={styles.footer}>
+        <p>Serate Film · Il cinema, insieme.</p>
         <form action={logout}>
-          <button className="eyebrow hover:text-schermo">Esci · {user.name}</button>
+          <button>Esci · {user.name}</button>
         </form>
       </footer>
     </div>
