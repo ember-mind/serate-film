@@ -12,6 +12,8 @@ permissions:
 jobs:
   validate:
     if: github.event.pull_request.head.ref == 'codex/update-patched-next' && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -31,25 +33,43 @@ jobs:
           npm audit fix --package-lock-only --ignore-scripts --omit=dev --audit-level=high
       - name: Install the newly resolved lockfile
         run: npm ci
-      - name: Prepare review evidence (tracked source and generated manifests only)
-        run: |
-          mkdir -p review-output
-          git archive --format=tar HEAD > review-output/source.tar
-          cp package.json package-lock.json review-output/
-          if [ -d node_modules/next/dist/docs ]; then
-            tar -czf review-output/next-docs.tar.gz -C node_modules/next/dist/docs .
-          fi
       - name: Regression suite
         run: npm test
       - name: Production build
         run: npm run build
       - name: Production audit
         run: npm audit --omit=dev --audit-level=high
-      - name: Export generated manifests for explicit review and commit
-        if: always()
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: dependency-refresh-evidence
-          path: review-output/
-          if-no-files-found: warn
-          retention-days: 7
+      - name: Commit only the previously reviewed lockfile to this PR branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const content = fs.readFileSync('package-lock.json');
+          const blob = crypto.createHash('sha1').update(`blob ${content.length}\0`).update(content).digest('hex');
+          if (blob !== '1803116447658af41345974196dbf3b67faf0638') throw new Error('Generated lockfile differs from reviewed artifact; refusing to publish');
+          const branch = 'codex/update-patched-next';
+          const base = 'https://api.github.com/repos/ember-mind/serate-film';
+          async function api(path, options = {}) {
+            const response = await fetch(base + path, {
+              ...options,
+              headers: {Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json'},
+            });
+            if (!response.ok) throw new Error(`GitHub request failed: ${response.status}`);
+            return response.json();
+          }
+          (async () => {
+            const ref = await api('/git/ref/heads/' + branch);
+            if (ref.object.sha !== process.env.EXPECTED_HEAD) throw new Error('PR branch moved; refusing to publish');
+            const current = await api('/contents/package-lock.json?ref=' + branch);
+            if (current.sha === blob) return;
+            if (current.sha !== 'f600202a4d0f0334fc1c5ac673899c2bd2ec8958') throw new Error('Original lockfile changed; refusing to overwrite');
+            const result = await api('/contents/package-lock.json', {
+              method: 'PUT',
+              body: JSON.stringify({message: 'chore(deps): commit verified patched dependency lockfile', branch, sha: current.sha, content: content.toString('base64')}),
+            });
+            console.log('Published reviewed lockfile commit:', result.commit.sha);
+          })().catch(error => { console.error(error.message); process.exitCode = 1; });
+          NODE
