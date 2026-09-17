@@ -42,7 +42,7 @@
 .activity strong { color: var(--ui-text); font-weight: 500; }
 @media (max-width: 800px) { .heroArt { min-height: 250px; } .posterGrid { gap: 16px; } .heroBody { padding: 24px; } }
 @media (max-width: 600px) {
-  .pageHead { align-items: flex-start; gap: 12px; margin-bottom: 22px; flex-wrap: wrap; }
+  .pageHead { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; margin-bottom: 22px; }
   .title { font-size: 30px; letter-spacing: -.5px; }
   .overline { font-size: 11px; margin-bottom: 6px; }
   .pageHead .sub { font-size: 13px; }
@@ -50,6 +50,7 @@
   .hero { grid-template-columns: minmax(0, 1fr); }
   .heroArt { min-height: 0; height: 144px; }
   .heroBody { padding: 18px; }
+  .heroBody > .overline { display: none; }
   .heroTitle { font-size: 29px; margin: 8px 0; }
   .heroBody .button { margin-top: 16px; }
   .section { margin-top: 28px; }
