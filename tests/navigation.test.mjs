@@ -52,6 +52,7 @@ test("returned destinations stay same-origin across separator combinations", () 
       const sanitized = sanitizeNext(value);
       assert.ok(sanitized.startsWith("/") && !sanitized.startsWith("//"));
       assert.equal(new URL(sanitized, origin).origin, origin, JSON.stringify(value));
+      assert.equal(sanitizeNext(sanitized), sanitized, "sanitization must be idempotent");
     }
   }
 });
