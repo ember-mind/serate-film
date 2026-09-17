@@ -39,7 +39,8 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/ui-tools" --no-package-lock --ignore-scripts playwright@1.58.2
           "$RUNNER_TEMP/ui-tools/node_modules/.bin/playwright" install --with-deps chromium
       - name: Production build with an isolated build database
-        run: DATABASE_PATH=:memory: npm run build
+        run: |
+          DATABASE_PATH=:memory: npm run build
       - name: Exercise the real app on a disposable database
         run: PLAYWRIGHT_MODULE="$RUNNER_TEMP/ui-tools/node_modules/playwright" node tests/ui/smoke.mjs
       - name: Save browser screenshots and checks
