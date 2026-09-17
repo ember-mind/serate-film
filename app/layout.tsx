@@ -38,7 +38,6 @@ export default function RootLayout({
       className={`${cinzel.variable} ${spline.variable} ${splineMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <div className="grain" aria-hidden />
         {children}
       </body>
     </html>
