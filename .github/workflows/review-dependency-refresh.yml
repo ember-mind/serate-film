@@ -1,0 +1,55 @@
+name: Dependency refresh validation
+
+on:
+  pull_request:
+    paths:
+      - package.json
+      - .github/workflows/review-dependency-refresh.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event.pull_request.head.ref == 'codex/update-patched-next' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_PATH: ":memory:"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Resolve the targeted upgrade and compatible security fixes
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          npm audit fix --package-lock-only --ignore-scripts --omit=dev --audit-level=high
+      - name: Install the newly resolved lockfile
+        run: npm ci
+      - name: Prepare review evidence (tracked source and generated manifests only)
+        run: |
+          mkdir -p review-output
+          git archive --format=tar HEAD > review-output/source.tar
+          cp package.json package-lock.json review-output/
+          if [ -d node_modules/next/dist/docs ]; then
+            tar -czf review-output/next-docs.tar.gz -C node_modules/next/dist/docs .
+          fi
+      - name: Regression suite
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Production audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: Export generated manifests for explicit review and commit
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: dependency-refresh-evidence
+          path: review-output/
+          if-no-files-found: warn
+          retention-days: 7
